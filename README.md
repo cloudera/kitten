@@ -17,7 +17,7 @@ To build Kitten, run:
 from this directory. That will build the common, master, and client subprojects.
 
 Kitten is developed against CDH4, which ships with an experimental YARN
-module. [Cloudera Manager][1] is the easiest way to get a Hadoop cluster with
+module. Cloudera Manager [1] is the easiest way to get a Hadoop cluster with
 YARN up and running.
 
 The `java/examples/distshell` directory contains an example configuration file
