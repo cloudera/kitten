@@ -28,7 +28,6 @@ import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import com.cloudera.kitten.client.params.lua.LuaYarnClientParameters;
 import com.cloudera.kitten.client.service.YarnClientServiceImpl;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.util.concurrent.Service.State;
 
 /**
  * A simple client for cases where there does not need to be any client-side logic to run a job.

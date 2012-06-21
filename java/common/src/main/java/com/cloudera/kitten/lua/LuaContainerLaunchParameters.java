@@ -38,7 +38,6 @@ import org.luaj.vm2.LuaValue;
 
 import com.cloudera.kitten.ContainerLaunchParameters;
 import com.cloudera.kitten.util.Extras;
-import com.cloudera.kitten.util.LocalDataHelper;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 

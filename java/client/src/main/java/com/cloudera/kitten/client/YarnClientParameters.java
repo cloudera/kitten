@@ -20,7 +20,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import com.cloudera.kitten.ContainerLaunchParameters;
 
 /**
- * The information that the {@link YarnClientService} needs to know in order to manage
+ * The information that the {@code YarnClientService} needs to know in order to manage
  * setting up a YARN application from the client.
  */
 public interface YarnClientParameters {

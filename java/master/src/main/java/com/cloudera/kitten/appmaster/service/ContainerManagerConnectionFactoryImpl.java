@@ -29,9 +29,6 @@ import org.apache.hadoop.yarn.ipc.YarnRPC;
 import com.cloudera.kitten.appmaster.ContainerManagerConnectionFactory;
 import com.google.common.collect.Maps;
 
-/**
- *
- */
 public class ContainerManagerConnectionFactoryImpl implements
     ContainerManagerConnectionFactory {
 

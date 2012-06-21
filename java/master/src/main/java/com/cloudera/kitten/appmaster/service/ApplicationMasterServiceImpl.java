@@ -58,9 +58,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.AbstractScheduledService;
 
-/**
- *
- */
 public class ApplicationMasterServiceImpl extends
     AbstractScheduledService implements ApplicationMasterService {
 

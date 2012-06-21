@@ -26,9 +26,6 @@ import org.apache.hadoop.yarn.ipc.YarnRPC;
 
 import com.cloudera.kitten.MasterConnectionFactory;
 
-/**
- *
- */
 public class ResourceManagerConnectionFactory implements
     MasterConnectionFactory<AMRMProtocol> {
 

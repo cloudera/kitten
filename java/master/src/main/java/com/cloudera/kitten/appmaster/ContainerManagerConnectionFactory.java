@@ -18,7 +18,8 @@ import org.apache.hadoop.yarn.api.ContainerManager;
 import org.apache.hadoop.yarn.api.records.Container;
 
 /**
- *
+ * Handles connecting to the {@code ContainerManager} that is responsible for a specific
+ * {@code Container} instance.
  */
 public interface ContainerManagerConnectionFactory {
   ContainerManager connect(Container container);
