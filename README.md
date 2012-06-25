@@ -23,8 +23,8 @@ To build Kitten, run:
 from this directory. That will build the common, master, and client subprojects.
 
 Kitten is developed against CDH4, which ships with an experimental YARN
-module. Cloudera Manager [1] is the easiest way to get a Hadoop cluster with
-YARN up and running.
+module. [Cloudera Manager](https://ccp.cloudera.com/display/SUPPORT/Cloudera+Manager+Downloads)
+is the easiest way to get a Hadoop cluster with YARN up and running.
 
 The `java/examples/distshell` directory contains an example configuration file
 that can be used to run the Kitten version of the Distributed Shell example
@@ -36,8 +36,6 @@ where the jar file is in the `java/client/target` directory. You should also cop
 application master jar file from `java/master/target` to a directory where it can be
 referenced from distshell.lua.
 
-[1] https://ccp.cloudera.com/display/SUPPORT/Cloudera+Manager+Downloads
-
 ## Using Kitten
 
 Kitten aims to handle the boilerplate aspects of configuring and launching YARN applications,
@@ -45,16 +43,14 @@ allowing developers to focus on the logic of their application and not the mecha
 to deploy it on a Hadoop cluster. It provides two related components that simplify
 common YARN usage patterns:
 
-1. A configuration language, based on Lua 5.1 [1], that is used to specify the resources the
+1. A configuration language, based on [Lua 5.1](http://www.lua.org/manual/5.1/), that is used to specify the resources the
 application needs from the cluster in order to run.
 2. A pair of Guava services, one for the client and one for the application master, that handle
 all of the RPCs that are executed during the lifecycle of a YARN application, and
 
-[1] http://www.lua.org/manual/5.1/
-
 ## Configuration Language
 
-Kitten makes extensive use of Lua's `table` type [1] to organize information about how a
+Kitten makes extensive use of Lua's [table type](http://lua-users.org/wiki/TablesTutorial) to organize information about how a
 YARN application should be executed. Lua tables combine aspects of arrays and dictionaries into
 a single data structure:
 
@@ -65,8 +61,6 @@ a single data structure:
 	  is = "this",
 	  ["a.key.with.dots"] = "is allowed using special syntax"
 	}
-
-[1] http://lua-users.org/wiki/TablesTutorial
 
 ### The `yarn` Function
 
@@ -198,43 +192,33 @@ be specified:
 ## Kitten Services
 
 Kitten provides a pair of services that handle all interactions with YARN's ResourceManager: one for the client
-(`YarnClientService` [1]) and one for the application master (`ApplicationMasterService` [2]). These services are implemented
-via the Service API [3] that is defined in Google's Guava library for Java and manage the cycle of starting a new application,
+[YarnClientService](http://github.com/cloudera/kitten/blob/master/java/client/src/main/java/com/cloudera/kitten/client/YarnClientService.java)
+and one for the application master [ApplicationMasterService](http://github.com/cloudera/kitten/blob/master/java/master/src/main/java/com/cloudera/kitten/appmaster/ApplicationMasterService.java). These services are implemented
+via the [Service API](http://docs.guava-libraries.googlecode.com/git/javadoc/com/google/common/util/concurrent/Service.html)
+ that is defined in Google's Guava library for Java and manage the cycle of starting a new application,
 monitoring it while it runs, and then shutting it down and performing any necessary cleanup when the application
 has finished. Additionally, they provide auxillary functions for handling common tasks during application execution.
 
 The client and master service APIs have a similar design. They both rely on an interface that specifies how to configure
-various requests that are issued to YARN's ResourceManager. In the case of the client, this is the `YarnClientParameters`
-interface [4], and for the master, it is the `ApplicationMasterParameters` interface [5]. Kitten ships with implementations of these
-interfaces that get their values from a combination of the Kitten Lua DSL and an optional map of key-value pairs that
-are specified in Java and may be used to provide configuration information that is not known until runtime. For example, this
-map is used to communicate the hostname and port of the master application to the slave nodes that are launched via
-containers.
-
-[1] http://github.com/cloudera/kitten/blob/master/java/client/src/main/java/com/cloudera/kitten/client/YarnClientService.java
-
-[2] http://github.com/cloudera/kitten/blob/master/java/master/src/main/java/com/cloudera/kitten/appmaster/ApplicationMasterService.java
-
-[3] http://docs.guava-libraries.googlecode.com/git/javadoc/com/google/common/util/concurrent/Service.html
-
-[4] http://github.com/cloudera/kitten/blob/master/java/client/src/main/java/com/cloudera/kitten/client/YarnClientParameters.java
-
-[5] http://github.com/cloudera/kitten/blob/master/java/master/src/main/java/com/cloudera/kitten/appmaster/ApplicationMasterParameters.java
+various requests that are issued to YARN's ResourceManager. In the case of the client, this is the [YarnClientParameters](http://github.com/cloudera/kitten/blob/master/java/client/src/main/java/com/cloudera/kitten/client/YarnClientParameters.java)
+interface, and for the master, it is the [ApplicationMasterParameters](http://github.com/cloudera/kitten/blob/master/java/master/src/main/java/com/cloudera/kitten/appmaster/ApplicationMasterParameters.java)
+interface. Kitten ships with implementations of these interfaces that get their values from a combination of the Kitten Lua DSL
+and an optional map of key-value pairs that are specified in Java and may be used to provide configuration information that is not
+known until runtime. For example, this map is used to communicate the hostname and port of the master
+application to the slave nodes that are launched via containers.
 
 ### Client Services
 
-Kitten ships with a default client application, `KittenClient` [1], which is intended to be used with YARN applications that provide
+Kitten ships with a default client application, [KittenClient](http://github.com/cloudera/kitten/blob/master/java/client/src/main/java/com/cloudera/kitten/client/KittenClient.java),
+which is intended to be used with YARN applications that provide
 their status via a tracking URL and do not require application-specific client interactions.
-
-[1] http://github.com/cloudera/kitten/blob/master/java/client/src/main/java/com/cloudera/kitten/client/KittenClient.java
 
 ### ApplicationMaster Services
 
-Kitten also ships with a default application master, the aptly-named `ApplicationMaster` [1], which is primarily provided as an
+Kitten also ships with a default application master, the aptly-named [ApplicationMaster](http://github.com/cloudera/kitten/blob/master/java/master/src/main/java/com/cloudera/kitten/appmaster/ApplicationMaster.java),
+which is primarily provided as an
 example. Most real YARN applications will also incorporate some logic for coordinating the slave nodes into their application master
 binary, as well as for passing additional configuration information to the Lua DSL.
-
-[1] http://github.com/cloudera/kitten/blob/master/java/master/src/main/java/com/cloudera/kitten/appmaster/ApplicationMaster.java
 
 ## FAQ
 
