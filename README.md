@@ -65,6 +65,67 @@ Kitten defines two additional functions in Lua that aid in configuring YARN appl
 The `yarn` function is used to check that a Lua table that describes a YARN application contains all
 of the information that Kitten will require in order to launch the application, as well as providing
 some convenience functions that minimize how often some configuration information needs to be repeated.
+Here is how yarn is used to define the distributed shell application:
+
+	distshell = yarn {
+	  name = "Distributed Shell",
+	  timeout = 10000,
+	  memory = 128,
+
+	  master = {
+ 	    env = base_env, -- Defined elsewhere in the file
+	    command = {
+	      base = "java -Xmx128m com.cloudera.kitten.appmaster.ApplicationMaster",
+	      args = { "-conf job.xml" }, -- job.xml contains the client configuration info.
+	    }
+	  },
+	
+	  container = {
+	    instances = 3,
+	    env = base_env,  -- Defined elsewhere in the file
+	    command = "echo 'Hello World!' >> /tmp/hello_world"
+	  }
+	}
+
+The `yarn` function checks for the following fields in the table that is passed to it, optionally
+setting default values for optional fields that were not specified.
+
+1. **name** (string, required): The name of this application.
+2. **timeout** (integer, defaults to -1): How long the client should wait in milliseconds
+before killing the application due to a timeout. If < 0, then the client will wait forever.
+3. **user** (string, defaults to the user executing the client): The user to execute the
+application as on the Hadoop cluster.
+4. **queue** (string, defaults to ""): The queue to submit the job to, if the capacity scheduler
+is enabled on the cluster.
+
+In order to configure the application master and the container tasks, the `yarn` function checks for
+the presence of a **master** field and either a **container** or **containers** field. The *container*
+field is a shortcut for the case in which there is only one kind of container configuration; otherwise
+the **containers** field expects a repeated list of container configurations. The **master** and
+**container/containers** fields take a similar set of fields that specify how to allocate resources and
+then run a command in the container that was created:
+
+1. **conf** (table, optional): A table of key-value pairs that will be added to the Configuration
+that is passed to the container via the job.xml file. The creation of this file is built-in to the Kitten
+framework and is similar to how the MapReduce library uses the Configuration object to pass client-side
+configuration information to tasks executing on the cluster.
+2. **env** (table, optional): A table of key-value pairs that will be set as environment variables in the
+container.
+3. **memory** (integer, defaults to 128): The amount of memory to allocate for the container, in megabytes.
+4. **instances** (integer, defaults to 1): The number of instances of this container type to create
+on the cluster. Note that this only applies to the **container/containers** arguments; the system will only
+allocate a single master for each application.
+5. **priority** (integer, defaults to 0): The relative priority of the containers that are allocated. Note
+that this prioritization is internal to each application; it does not control how many resources the
+application is allowed to use or how they are prioritized.
+6. **command/commands** (string(s) or table(s), optional): **command** is a shortcut for **commands** in the
+case that there is only a single command that needs to be executed within each container. This field
+can either be a string that will be run as-is, or it may be a table that contains two subfields: a **base**
+field that is a string and an **args** field that is a table. Kitten will construct a command by concatenating
+the values in the args table to the base string to form the command to execute.
+7. **resources** (table of tables, optional): The resources (in terms of files, URLs, etc.) that the command
+needs to run in the container. This is a table that is composed of other tables, similar to an array. The
+names of these fields are described below.
 
 ### `cat`
 
@@ -81,14 +142,17 @@ shared between the application master and the tasks that are launched in contain
 way to reference this shared information within the configuration file while allowing some extra parameters to
 be specified:
 
+	-- Define the common environment variables once.
 	base_env = cat { CLASSPATH = "...", JAVA_HOME = "..." }
 	
 	my_app = yarn {
 	  master = {
+	    -- Copy base_env and add an extra setting for the master.
 	    env = base_env { IS_MASTER = 1 },
 	  }
 
 	  container = {
+	    -- Copy base_env and add an extra variable for the container nodes.
 	    env = base_env { IS_MASTER = 0 },
 	  }
 	}
