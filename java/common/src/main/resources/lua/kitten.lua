@@ -59,7 +59,7 @@ function yarn(t)
   local clp_check = function(clp, name)
     clp = f_check(clp, name)
     clp.user = t_check(clp.user, name .. ".user", "string")
-    clp.memory = t_check(clp.memory or 128, name .. ".memory", "number")
+    clp.memory = t_check(clp.memory or 512, name .. ".memory", "number")
     clp.priority = t_check(clp.priority or 0, name .. ".priority", "number")
     clp.instances = t_check(clp.instances or 1, name .. ".instances", "number")
 

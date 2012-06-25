@@ -9,7 +9,7 @@ containers, allowing developers to easily deploy distributed applications that
 run under YARN.
 
 This link provides a useful overview of what is required to create a new YARN
-application, and should also help you understand our motivations in creating
+application, and should also help you understand the motivation for creating
 Kitten.
 
 http://hadoop.apache.org/common/docs/r0.23.0/hadoop-yarn/hadoop-yarn-site/WritingYarnApplications.html
@@ -78,7 +78,7 @@ Here is how yarn is used to define the distributed shell application:
 	distshell = yarn {
 	  name = "Distributed Shell",
 	  timeout = 10000,
-	  memory = 128,
+	  memory = 512,
 
 	  master = {
  	    env = base_env, -- Defined elsewhere in the file
@@ -121,7 +121,7 @@ then run a command in the container that was created:
 container. Note that if all of the environment variables are the same for the master and container, you
 can specify the **env** table once in the yarn table and it will be linked to the subtables by the `yarn`
 function.
-2. **memory** (integer, defaults to 128): The amount of memory to allocate for the container, in megabytes.
+2. **memory** (integer, defaults to 512): The amount of memory to allocate for the container, in megabytes.
 If the same amount of memory is allocated for both the master and the containers, you can specify the value
 once inside of the yarn table and it will be linked to the subtables by the `yarn` function.
 3. **instances** (integer, defaults to 1): The number of instances of this container type to create
