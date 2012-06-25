@@ -210,15 +210,23 @@ application to the slave nodes that are launched via containers.
 ### Client Services
 
 Kitten ships with a default client application, [KittenClient](http://github.com/cloudera/kitten/blob/master/java/client/src/main/java/com/cloudera/kitten/client/KittenClient.java),
-which is intended to be used with YARN applications that provide
-their status via a tracking URL and do not require application-specific client interactions.
+which is intended to be used with YARN applications that provide their status via a tracking URL and do not require application-specific client interactions. KittenClient
+has two required arguments: the first should be a path to a .lua file that contains the configuration information for a YARN application, and the second should be the
+name of one of the tables defined in that file using the `yarn` function. Additionally, KittenClient implements Hadoop's `Tool` interface, and so those two required
+arguments may be preceded by the other Hadoop configuration arguments.
+
+KittenClient can also be used as a basis for your own YARN applications by subclassing KittenClient and overriding the `handle` method for interacting with the
+service.
 
 ### ApplicationMaster Services
 
 Kitten also ships with a default application master, the aptly-named [ApplicationMaster](http://github.com/cloudera/kitten/blob/master/java/master/src/main/java/com/cloudera/kitten/appmaster/ApplicationMaster.java),
-which is primarily provided as an
-example. Most real YARN applications will also incorporate some logic for coordinating the slave nodes into their application master
-binary, as well as for passing additional configuration information to the Lua DSL.
+which is primarily intended as an example.
+
+Most real YARN applications will also incorporate some logic for coordinating the slave nodes into their application master
+binary, as well as for passing additional configuration information to the Lua DSL. The ApplicationMasterParameters interface provides methods
+that allow the application master to specify the hostname (`setHostname`), port (`setClientPort`), and a tracking URL (`setTrackingUrl`) that
+will be passed along to the ResourceManager and then to the client.
 
 ## FAQ
 
