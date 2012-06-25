@@ -68,14 +68,6 @@ function yarn(t)
       clp.env[k] = s_check(v, name .. ".env[" .. k .. "]")
     end
 
-    clp.args = t_check(clp.args or {}, name .. ".args", "table")
-    for k, v in pairs(clp.args) do
-      clp.args[k] = s_check(v, name .. ".args[" .. k .. "]")
-    end
-    for i, v in ipairs(clp.args) do
-      clp.args[i] = s_check(v, name .. ".args[" .. i .. "]")
-    end
-
     -- What to do for command and for resources?
     return clp
   end
@@ -83,14 +75,14 @@ function yarn(t)
   -- Verify that the master is configured correctly.
   t.master = clp_check(t.master, "master")
 
-  -- Verify the node(s) configuration.
-  if t.node then
-    t.node = clp_check(t.node, "node")
-  elseif t.nodes then
+  -- Verify the container(s) configuration.
+  if t.container then
+    t.container = clp_check(t.container, "node")
+  elseif t.containers then
     -- Need to add checks here to ensure these exist.
-    for i, node in ipairs(t.nodes) do
-      local node_name = "node(" .. i .. ")"
-      t.nodes[i] = clp_check(t.nodes[i], node_name)
+    for i, container in ipairs(t.containers) do
+      local container_name = "container(" .. i .. ")"
+      t.containers[i] = clp_check(t.containers[i], container_name)
     end
   end
 

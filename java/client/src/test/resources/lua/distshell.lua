@@ -23,7 +23,6 @@ distshell = yarn {
   container = {
     instances = CONTAINER_INSTANCES,
     env = base_env,
-    resources = { job_jar },
     command = SHELL_COMMAND .. TEST_FILE -- specified externally by the test case.
   }
 }
