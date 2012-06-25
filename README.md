@@ -197,4 +197,68 @@ be specified:
 
 ## Kitten Services
 
-TODO
+Kitten provides a pair of services that handle all interactions with YARN's ResourceManager: one for the client
+(`YarnClientService` [1]) and one for the application master (`ApplicationMasterService` [2]). These services are implemented
+via the Service API [3] that is defined in Google's Guava library for Java and manage the cycle of starting a new application,
+monitoring it while it runs, and then shutting it down and performing any necessary cleanup when the application
+has finished. Additionally, they provide auxillary functions for handling common tasks during application execution.
+
+The client and master service APIs have a similar design. They both rely on an interface that specifies how to configure
+various requests that are issued to YARN's ResourceManager. In the case of the client, this is the `YarnClientParameters`
+interface [4], and for the master, it is the `ApplicationMasterParameters` interface [5]. Kitten ships with implementations of these
+interfaces that get their values from a combination of the Kitten Lua DSL and an optional map of key-value pairs that
+are specified in Java and may be used to provide configuration information that is not known until runtime. For example, this
+map is used to communicate the hostname and port of the master application to the slave nodes that are launched via
+containers.
+
+[1] http://github.com/cloudera/kitten/blob/master/java/client/src/main/java/com/cloudera/kitten/client/YarnClientService.java
+[2] http://github.com/cloudera/kitten/blob/master/java/master/src/main/java/com/cloudera/kitten/appmaster/ApplicationMasterService.java
+[3] http://docs.guava-libraries.googlecode.com/git/javadoc/com/google/common/util/concurrent/Service.html
+[4] http://github.com/cloudera/kitten/blob/master/java/client/src/main/java/com/cloudera/kitten/client/YarnClientParameters.java
+[5] http://github.com/cloudera/kitten/blob/master/java/master/src/main/java/com/cloudera/kitten/appmaster/ApplicationMasterParameters.java
+
+### Client Services
+
+Kitten ships with a default client application, `KittenClient` [1], which is intended to be used with YARN applications that provide
+their status via a tracking URL and do not require application-specific client interactions.
+
+[1] http://github.com/cloudera/kitten/blob/master/java/client/src/main/java/com/cloudera/kitten/client/KittenClient.java
+
+### ApplicationMaster Services
+
+Kitten also ships with a default application master, the aptly-named `ApplicationMaster` [1], which is primarily provided as an
+example. Most real YARN applications will also incorporate some logic for coordinating the slave nodes into their application master
+binary, as well as for passing additional configuration information to the Lua DSL.
+
+[1] http://github.com/cloudera/kitten/blob/master/java/master/src/main/java/com/cloudera/kitten/appmaster/ApplicationMaster.java
+
+## FAQ
+
+1.  Why Lua as a configuration language?
+
+    Lua's original use case was as a tool for configuring C++ applications, and it has been widely adopted in the gaming community as
+    a simple scripting language. It has a number of desirable properties for the use case of configuring YARN applications, namely:
+
+    1. **It integrates well with both Java and C++.** We expect to see YARN applications written in both languages, and expect that
+    Kitten will need to support both. Having a single configuration format for both languages reduces the cognitive overhead for developers.
+    2. **It is a programming language, but not much of one.** Lua provides a complete programming environment when you need it, but
+    mainly stays out of your way and lets you focus on configuration.
+    3. **It tolerates missing values well.** It is easy to reference values in a configuration file that may not be defined until much
+    later. For example, we can specify parameters that will eventually contain the value of the master's hostname and port, but are
+    undefined when the client application is initially configured.
+
+    That said, we fully expect that other languages (e.g., Lisp) would make excellent configuration languages for YARN applications, which
+    is why the `YarnClientParameters` and `ApplicationMasterParameters` are interfaces: we can swap out other configuration DSLs that
+    may make more sense for certain developers or use cases.
+
+2.  What are your plans for Kitten?
+
+    That's a good question. In the short term, we're primarily interested in writing YARN applications that leverage Kitten, which will give
+    us a chance to fix bugs and add solutions to common design patterns. We expect that Kitten will add functionality over time that makes
+    it easier to handle failures, report internal application state, and provide for dynamically allocating new resources over time. We also
+    expect to spend a fair amount of time adding C++ versions of the client and application master services so that Kitten's DSL could also
+    be used to configure C++ applications to run on YARN.
+
+    Additionally, we could add functionality for configuring all kinds of jobs- like MapReduces, Pig scripts, Hive queries, etc.- as
+    Kitten tasks, using functions similar to `yarn`. We could also use Kitten to specify DAGs of tasks and treat Kitten as an alternative
+    way of interacting with Oozie's job scheduling functionality.
