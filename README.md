@@ -212,9 +212,13 @@ map is used to communicate the hostname and port of the master application to th
 containers.
 
 [1] http://github.com/cloudera/kitten/blob/master/java/client/src/main/java/com/cloudera/kitten/client/YarnClientService.java
+
 [2] http://github.com/cloudera/kitten/blob/master/java/master/src/main/java/com/cloudera/kitten/appmaster/ApplicationMasterService.java
+
 [3] http://docs.guava-libraries.googlecode.com/git/javadoc/com/google/common/util/concurrent/Service.html
+
 [4] http://github.com/cloudera/kitten/blob/master/java/client/src/main/java/com/cloudera/kitten/client/YarnClientParameters.java
+
 [5] http://github.com/cloudera/kitten/blob/master/java/master/src/main/java/com/cloudera/kitten/appmaster/ApplicationMasterParameters.java
 
 ### Client Services
