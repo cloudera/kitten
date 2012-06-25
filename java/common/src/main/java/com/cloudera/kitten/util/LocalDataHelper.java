@@ -51,6 +51,9 @@ public class LocalDataHelper {
 
   private static Log LOG = LogFactory.getLog(LocalDataHelper.class);
   
+  // Provide a way for tests/clients to override the app base directory.
+  public static final String APP_BASE_DIR = "kitten.app.base.dir";
+  
   public static InputStream getFileOrResource(String name) {
     File f = new File(name);
     if (f.exists()) {
@@ -144,11 +147,20 @@ public class LocalDataHelper {
     if (applicationId != null) {
       appDir += applicationId.getId();
     }
-    Path base = new Path(fs.getHomeDirectory(), appDir);
+    Path base = getAppPath(fs, appDir);
     Path dst = new Path(base, name);
     return dst;
   }
 
+  private Path getAppPath(FileSystem fs, String appDir) {
+    String abd = conf.get(APP_BASE_DIR);
+    if (abd != null) {
+      return new Path(new Path(abd), appDir);
+    } else {
+      return new Path(fs.getHomeDirectory(), appDir);
+    }
+  }
+  
   public Map<String, URI> getFileMapping() {
     return localToHdfs;
   }

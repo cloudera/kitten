@@ -28,6 +28,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.cloudera.kitten.client.KittenClient;
+import com.cloudera.kitten.util.LocalDataHelper;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
@@ -76,6 +77,7 @@ public class TestKittenDistributedShell {
         ImmutableMap.<String, Object>of(
             "TEST_FILE", tmpFile.getAbsolutePath(),
             "PWD", (new File(".")).getAbsolutePath()));
+    conf.set(LocalDataHelper.APP_BASE_DIR, "file:///tmp/");
     client.setConf(conf);
     
     assertEquals(0, client.run(new String[] { config, "distshell" }));
