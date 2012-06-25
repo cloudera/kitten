@@ -30,6 +30,7 @@ import org.junit.Test;
 import com.cloudera.kitten.ContainerLaunchParameters;
 import com.cloudera.kitten.client.YarnClientParameters;
 import com.cloudera.kitten.client.params.lua.LuaYarnClientParameters;
+import com.cloudera.kitten.util.LocalDataHelper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
 
@@ -37,6 +38,7 @@ public class BasicLuaConfigTest {
 
   Resource clusterMin;
   Resource clusterMax;
+  Configuration conf;
   
   @Before
   public void setUp() throws Exception {
@@ -44,6 +46,8 @@ public class BasicLuaConfigTest {
     clusterMin.setMemory(50);
     clusterMax = Records.newRecord(Resource.class);
     clusterMax.setMemory(90);
+    conf = new Configuration();
+    conf.set(LocalDataHelper.APP_BASE_DIR, "file:///tmp/");
   }
   
   @Test
@@ -52,7 +56,7 @@ public class BasicLuaConfigTest {
     Files.copy(newInputStreamSupplier(getResource("lua/test1.lua")), tmpFile);
     tmpFile.deleteOnExit();
     YarnClientParameters params = new LuaYarnClientParameters(tmpFile.getAbsolutePath(), "distshell",
-        new Configuration());
+        conf);
     assertEquals("Distributed Shell", params.getApplicationName());
     assertEquals(86400L, params.getClientTimeoutMillis());
     assertEquals("", params.getQueue());
