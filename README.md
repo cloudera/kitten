@@ -258,3 +258,7 @@ will be passed along to the ResourceManager and then to the client.
     Additionally, we could add functionality for configuring all kinds of jobs- like MapReduces, Pig scripts, Hive queries, etc.- as
     Kitten tasks, using functions similar to `yarn`. We could also use Kitten to specify DAGs of tasks and treat Kitten as an alternative
     way of interacting with Oozie's job scheduling functionality.
+
+3.  Were any animals harmed in the development of this library?
+
+    No.
