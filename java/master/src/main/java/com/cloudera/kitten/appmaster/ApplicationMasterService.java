@@ -19,9 +19,18 @@ import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import com.google.common.util.concurrent.Service;
 
 /**
- * Writing your own ApplicationMaster is for suckers. Use this service instead.
+ * A service that handles the common cluster-side logic for running an application on YARN. It
+ * should be included in the same JAR file that contains the application's business logic.
  */
 public interface ApplicationMasterService extends Service {
   
+  /**
+   * Returns the parameters used to configure this service.
+   */
+  ApplicationMasterParameters getParameters();
+  
+  /**
+   * Returns the application attempt ID.
+   */
   ApplicationAttemptId getApplicationAttemptId();
 }

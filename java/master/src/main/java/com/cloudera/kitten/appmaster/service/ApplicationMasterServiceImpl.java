@@ -88,6 +88,11 @@ public class ApplicationMasterServiceImpl extends
   }
 
   @Override
+  public ApplicationMasterParameters getParameters() {
+    return parameters;
+  }
+  
+  @Override
   public ApplicationAttemptId getApplicationAttemptId() {
     return parameters.getApplicationAttemptId();
   }

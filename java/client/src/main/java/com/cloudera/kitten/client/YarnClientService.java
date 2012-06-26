@@ -20,15 +20,31 @@ import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import com.google.common.util.concurrent.Service;
 
 /**
- * Writing your own YARN Client is for suckers. Use this service instead.
+ * A {@code Service} that handles the client-side logic for the lifecycle of a typical
+ * YARN application.
  */
 public interface YarnClientService extends Service {
 
+  /**
+   * Returns the parameters used to configure this service.
+   */
   YarnClientParameters getParameters();
   
+  /**
+   * Returns the ID of the application once it has been submitted. Only valid
+   * while the service is in the RUNNING state.
+   */
   ApplicationId getApplicationId();
   
+  /**
+   * Queries the YARN resource manager for the current state of the application on
+   * the cluster and returns the result.
+   */
   ApplicationReport getApplicationReport();
   
+  /**
+   * Check to see whether or not the application is still executing on the
+   * cluster.
+   */
   boolean isApplicationFinished();
 }
