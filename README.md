@@ -262,3 +262,7 @@ will be passed along to the ResourceManager and then to the client.
 3.  Were any animals harmed in the development of this library?
 
     No.
+
+4.  What if I have questions that aren't answered by this (otherwise awesome) FAQ?
+
+    We have mailing lists where you can ask questions, either as a [user of Kitten](https://groups.google.com/a/cloudera.org/forum/#!forum/kitten-user) or as a [developer of Kitten](https://groups.google.com/a/cloudera.org/forum/#!forum/kitten-dev).
