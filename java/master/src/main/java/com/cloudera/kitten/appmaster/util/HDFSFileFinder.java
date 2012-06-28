@@ -20,8 +20,8 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -29,33 +29,31 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
-import com.cloudera.kitten.util.LocalDataHelper;
-import com.google.common.collect.MapMaker;
 import com.google.common.collect.Maps;
 
-public class HDFSFileFinder implements Configurable, Tool {
+public class HDFSFileFinder extends Configured implements Tool {
   
-  private static Log LOG = LogFactory.getLog(LocalDataHelper.class);
-  private Configuration conf = null;
+  private static Log LOG = LogFactory.getLog(HDFSFileFinder.class);
   
-  public Map<String,Long> getNodesWithFile(Path p) throws IOException {
-    return getNumBytesOfFileHeldByDatanodes(p, getConf());
+  public Map<String,Long> getNumBytesOfGlobHeldByDatanodes(Path p) throws IOException {
+    return getNumBytesOfGlobHeldByDatanodes(p, getConf());
   }
   
-  public static Map<String,Long> getNumBytesOfFileHeldByDatanodes(Path p, Configuration conf) throws IOException {
+  public static Map<String,Long> getNumBytesOfGlobHeldByDatanodes(Path p, Configuration conf) throws IOException {
     FileSystem fs = p.getFileSystem(conf);
-    FileStatus fstatus = fs.getFileStatus(p);
-    BlockLocation[] bls = fs.getFileBlockLocations(p, 0, fstatus.getLen());
     
     HashMap<String,Long> bytesHeld = Maps.newHashMap();
-    if (bls.length > 0) {
-      for (BlockLocation bl : bls) {
-        long l = bl.getLength();
-        for (String name : bl.getNames()) {
-          if (bytesHeld.containsKey(name))
-            bytesHeld.put(name, bytesHeld.get(name) + l);
-          else
-            bytesHeld.put(name, l);
+    for (FileStatus f : fs.globStatus(p)) {
+      BlockLocation[] bls = fs.getFileBlockLocations(p, 0, f.getLen());
+      if (bls.length > 0) {
+        for (BlockLocation bl : bls) {
+          long l = bl.getLength();
+          for (String name : bl.getNames()) {
+            if (bytesHeld.containsKey(name))
+              bytesHeld.put(name, bytesHeld.get(name) + l);
+            else
+              bytesHeld.put(name, l);
+          }
         }
       }
     }
@@ -68,28 +66,14 @@ public class HDFSFileFinder implements Configurable, Tool {
     Configuration conf = getConf();
     for (String a : args) {
       Path p = new Path(a);
-      Map<String, Long> bytesHeld = getNumBytesOfFileHeldByDatanodes(p, conf);
+      Map<String, Long> bytesHeld = getNumBytesOfGlobHeldByDatanodes(p, conf);
       for (String node : bytesHeld.keySet())
         LOG.info(node + " : " + bytesHeld.get(node) + "b");
     }
     return 0;
   }
 
-  @Override
-  public void setConf(Configuration conf) {
-    this.conf = conf;
-  }
-
-  @Override
-  public Configuration getConf() {
-    if (this.conf == null)
-      throw new Error();
-    return this.conf;
-  }
-  
   public static void main(String[] args) throws Exception {
-    HDFSFileFinder ff = new HDFSFileFinder();
-    ff.setConf(new Configuration());
-    ToolRunner.run(ff, args);
+    ToolRunner.run(new Configuration(), new HDFSFileFinder(), args);
   }
 }

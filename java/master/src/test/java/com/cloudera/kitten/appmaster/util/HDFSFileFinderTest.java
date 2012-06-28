@@ -65,7 +65,7 @@ public class HDFSFileFinderTest {
     fs.copyFromLocalFile(src, dst);
     
     // get the hosts
-    Map<String, Long> bytesHeld = HDFSFileFinder.getNumBytesOfFileHeldByDatanodes(dst, conf);
+    Map<String, Long> bytesHeld = HDFSFileFinder.getNumBytesOfGlobHeldByDatanodes(dst, conf);
     
     for (String node : bytesHeld.keySet())
       LOG.info(node + " : " + bytesHeld.get(node));
