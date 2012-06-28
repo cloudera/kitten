@@ -36,6 +36,8 @@ public class LuaFields {
   public static final String INSTANCES = "instances";
   public static final String MEMORY = "memory";
   public static final String PRIORITY = "priority";
+  public static final String DESIRED_HOSTNAME = "desired_hostname";
+  public static final String DESIRED_LOCALITY_NEAR_HDFS_FILES = "near_hdfs";
 
   // For constructing commands from a LuaTable.
   public static final String COMMAND_BASE = "base";

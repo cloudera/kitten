@@ -17,6 +17,7 @@ package com.cloudera.kitten;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 
@@ -54,7 +55,19 @@ public interface ContainerLaunchParameters {
    * The local resources for the application in the container.
    */
   Map<String, LocalResource> getLocalResources();
-  
+
+  /**
+   * The HDFS paths that are expected to be accessed by the container (for data locality)
+   * Not to be confused with a LocalResource whose initial location is on HDFS
+   */
+  List<Path> getHDFSResources();
+
+  /**
+   * The desired hostname/rack
+   */
+  String getDesiredHostname();
+  void setDesiredHostname(String host);
+
   /**
    * The environment variables for the container.
    */

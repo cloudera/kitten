@@ -61,17 +61,17 @@ import com.google.common.util.concurrent.AbstractScheduledService;
 public class ApplicationMasterServiceImpl extends
     AbstractScheduledService implements ApplicationMasterService {
 
-  private static final Log LOG = LogFactory.getLog(ApplicationMasterServiceImpl.class);
+  protected static final Log LOG = LogFactory.getLog(ApplicationMasterServiceImpl.class);
 
-  private final ApplicationMasterParameters parameters;
-  private final MasterConnectionFactory<AMRMProtocol> resourceManagerFactory;
+  protected final ApplicationMasterParameters parameters;
+  protected final MasterConnectionFactory<AMRMProtocol> resourceManagerFactory;
   private final ContainerManagerConnectionFactory containerManagerFactory;
-  private final List<ContainerTracker> containerTrackers;
+  protected final List<ContainerTracker> containerTrackers;
   private final AtomicInteger newRequestId = new AtomicInteger();
   private final AtomicInteger totalFailures = new AtomicInteger();
   
-  private AMRMProtocol resourceManager;
-  private ContainerLaunchContextFactory containerLaunchContextFactory;
+  protected AMRMProtocol resourceManager;
+  protected ContainerLaunchContextFactory containerLaunchContextFactory;
   
   public ApplicationMasterServiceImpl(ApplicationMasterParameters params) {
     this(params, new ResourceManagerConnectionFactory(params.getConfiguration()),
@@ -140,7 +140,7 @@ public class ApplicationMasterServiceImpl extends
     }
   }
   
-  private RegisterApplicationMasterRequest createRegistrationRequest() {
+  protected RegisterApplicationMasterRequest createRegistrationRequest() {
     RegisterApplicationMasterRequest req = Records.newRecord(
         RegisterApplicationMasterRequest.class);
     req.setApplicationAttemptId(parameters.getApplicationAttemptId());
@@ -196,7 +196,7 @@ public class ApplicationMasterServiceImpl extends
     }
   }
   
-  private class ContainerTracker {
+  class ContainerTracker {
     private final ContainerLaunchParameters parameters;
     private final int needed;
     private final Map<ContainerId, ContainerService> services;
