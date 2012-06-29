@@ -48,7 +48,7 @@ public class ContainerLaunchContextFactory {
     req.setCapability(parameters.getContainerResource(clusterMin, clusterMax));
     req.setPriority(createPriority(parameters.getPriority()));
     req.setNumContainers(parameters.getNumInstances());
-    req.setHostName("*"); // TODO: get smarter about this.
+    req.setHostName(parameters.getDesiredHostname()); //TODO: get smarter about this
     return req;
   }
   

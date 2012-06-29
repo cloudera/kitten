@@ -141,6 +141,29 @@ public class LuaContainerLaunchParameters implements ContainerLaunchParameters {
     return localResources;
   }
 
+  @Override
+  public List<Path> getHDFSResources() {
+    List<Path> resourcePaths = Lists.newArrayList();
+    if (!lv.isNil(LuaFields.DESIRED_LOCALITY_NEAR_HDFS_FILES)) {
+      LuaWrapper lr = lv.getTable(LuaFields.DESIRED_LOCALITY_NEAR_HDFS_FILES);
+      for (LuaPair lp : lr) {
+        Path p = new Path(lp.value.tojstring());
+        resourcePaths.add(p);
+      }
+    }
+    return resourcePaths;
+  }
+
+  @Override
+  public String getDesiredHostname() {
+    return lv.isNil(LuaFields.DESIRED_HOSTNAME) ? "*" : lv.getString(LuaFields.DESIRED_HOSTNAME);
+  }
+
+  @Override
+  public void setDesiredHostname(String host) {
+    lv.setString(LuaFields.DESIRED_HOSTNAME, host);
+  }
+
   private LocalResource constructExtraResource(String key) {
     LocalResource rsrc = Records.newRecord(LocalResource.class);
     rsrc.setType(LocalResourceType.FILE);
