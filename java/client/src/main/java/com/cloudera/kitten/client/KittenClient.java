@@ -37,13 +37,19 @@ public class KittenClient extends Configured implements Tool {
   private static final Log LOG = LogFactory.getLog(KittenClient.class);
   
   private Map<String, Object> extraLuaValues;
+  private Map<String, String> extraLocalResources;
   
   public KittenClient() {
     this(ImmutableMap.<String, Object>of());
   }
   
   public KittenClient(Map<String, Object> extraLuaValues) {
+    this(extraLuaValues, ImmutableMap.<String, String>of());
+  }
+  
+  public KittenClient(Map<String, Object> extraLuaValues, Map<String, String> extraLocalResources) {
     this.extraLuaValues = extraLuaValues;
+    this.extraLocalResources = extraLocalResources;
   }
   
   @Override
@@ -55,7 +61,7 @@ public class KittenClient extends Configured implements Tool {
     
     Configuration conf = getConf();
     YarnClientParameters params = new LuaYarnClientParameters(args[0], args[1], conf,
-        extraLuaValues);
+        extraLuaValues, extraLocalResources);
     YarnClientService service = new YarnClientServiceImpl(params);
     
     return handle(service);

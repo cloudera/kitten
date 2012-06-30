@@ -48,11 +48,17 @@ public class LuaYarnClientParameters implements YarnClientParameters {
   
   public LuaYarnClientParameters(String script, String jobName, Configuration conf,
       Map<String, Object> extraLuaValues) {
+    this(script, jobName, conf, extraLuaValues, ImmutableMap.<String, String>of());
+  }
+  
+  public LuaYarnClientParameters(String script, String jobName, Configuration conf,
+      Map<String, Object> extraLuaValues, Map<String, String> resources) {
     this.env = new LuaWrapper(script, extraLuaValues).getTable(jobName);
     this.conf = initConf(env, conf);
     this.extras = new Extras();
     this.extras.putEnv(LuaFields.KITTEN_JOB_NAME, jobName);
     this.extras.putResource(LuaFields.KITTEN_LUA_CONFIG_FILE, script);
+    this.extras.putAllResources(resources);
     if (extraLuaValues != null && !extraLuaValues.isEmpty()) {
       this.extras.putEnv(LuaFields.KITTEN_EXTRA_LUA_VALUES,
           LocalDataHelper.serialize(extraLuaValues));
