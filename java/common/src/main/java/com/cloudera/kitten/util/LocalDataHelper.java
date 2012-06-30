@@ -63,11 +63,7 @@ public class LocalDataHelper {
         LOG.error("A file suddenly disappeared", e);
       }
     } else {
-      try {
-        return Resources.newInputStreamSupplier(Resources.getResource(name)).getInput();
-      } catch (IOException e) {
-        LOG.error("Error loading resource: " + name, e);
-      }
+      return LocalDataHelper.class.getResourceAsStream(name);
     }
     return null;
   }
