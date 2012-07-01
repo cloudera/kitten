@@ -33,19 +33,20 @@ public class ApplicationMaster extends Configured implements Tool {
     ApplicationMasterService service = new ApplicationMasterServiceImpl(params);
     
     service.startAndWait();
-    while (service.isRunning()) {
+    while (service.hasRunningContainers()) {
       Thread.sleep(1000);
     }
-    
-    System.exit(0);
+    service.stop();
     return 0;
   }
 
   public static void main(String[] args) throws Exception {
     try { 
-      ToolRunner.run(new Configuration(), new ApplicationMaster(), args);
+      int rc = ToolRunner.run(new Configuration(), new ApplicationMaster(), args);
+      System.exit(rc);
     } catch (Exception e) {
       System.err.println(e);
+      System.exit(1);
     }
   }
 }

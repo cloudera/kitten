@@ -33,4 +33,10 @@ public interface ApplicationMasterService extends Service {
    * Returns the application attempt ID.
    */
   ApplicationAttemptId getApplicationAttemptId();
+  
+  /**
+   * Returns true if there are containers that this application master service is
+   * monitoring.
+   */
+  boolean hasRunningContainers();
 }

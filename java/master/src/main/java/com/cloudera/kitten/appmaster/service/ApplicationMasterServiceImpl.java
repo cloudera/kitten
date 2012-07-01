@@ -72,6 +72,7 @@ public class ApplicationMasterServiceImpl extends
   
   private AMRMProtocol resourceManager;
   private ContainerLaunchContextFactory containerLaunchContextFactory;
+  private boolean hasRunningContainers = false;
   
   public ApplicationMasterServiceImpl(ApplicationMasterParameters params) {
     this(params, new ResourceManagerConnectionFactory(params.getConfiguration()),
@@ -95,6 +96,11 @@ public class ApplicationMasterServiceImpl extends
   @Override
   public ApplicationAttemptId getApplicationAttemptId() {
     return parameters.getApplicationAttemptId();
+  }
+  
+  @Override
+  public boolean hasRunningContainers() {
+    return hasRunningContainers;
   }
   
   @Override
@@ -124,6 +130,7 @@ public class ApplicationMasterServiceImpl extends
       ContainerLaunchParameters clp = containerParameters.get(i);
       containerTrackers.add(new ContainerTracker(clp));
     }
+    this.hasRunningContainers = true;
   }
   
   private AMResponse allocate(int id, ResourceRequest request, List<ContainerId> releases) {
@@ -191,9 +198,7 @@ public class ApplicationMasterServiceImpl extends
     for (ContainerTracker tracker : containerTrackers) {
       moreWork |= tracker.doWork();
     }
-    if (!moreWork) {
-      stop();
-    }
+    this.hasRunningContainers = moreWork;
   }
   
   private class ContainerTracker {
