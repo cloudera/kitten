@@ -93,11 +93,11 @@ public class KittenClient extends Configured implements Tool {
       }
     }
 
-    if (service.getFinalReport().getFinalApplicationStatus() == FinalApplicationStatus.SUCCEEDED) {
-      return 0;
-    } else {
+    ApplicationReport report = service.getFinalReport();
+    if (report == null || report.getFinalApplicationStatus() != FinalApplicationStatus.SUCCEEDED) {
       return 1;
     }
+    return 0;
   }
   
   public static void main(String[] args) throws Exception {

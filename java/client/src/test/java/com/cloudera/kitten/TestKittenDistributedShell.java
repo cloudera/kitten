@@ -67,7 +67,7 @@ public class TestKittenDistributedShell {
   
   @Test
   public void testKittenShell() throws Exception {
-    String config = "lua/distshell.lua";
+    String config = "/lua/distshell.lua";
 
     // For the outputs
     File tmpFile = File.createTempFile("distshell", ".txt");
