@@ -168,7 +168,7 @@ public class ApplicationMasterServiceImpl extends
     FinishApplicationMasterRequest finishReq = Records.newRecord(
         FinishApplicationMasterRequest.class);
     finishReq.setAppAttemptId(getApplicationAttemptId());
-    if (state() == State.FAILED || totalFailures.incrementAndGet() > parameters.getAllowedFailures()) {
+    if (state() == State.FAILED || totalFailures.get() > parameters.getAllowedFailures()) {
       //TODO: diagnostics
       finishReq.setFinishApplicationStatus(FinalApplicationStatus.FAILED);
     } else {

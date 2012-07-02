@@ -36,7 +36,7 @@ public class ApplicationMaster extends Configured implements Tool {
     while (service.hasRunningContainers()) {
       Thread.sleep(1000);
     }
-    service.stop();
+    service.stopAndWait();
     return 0;
   }
 
