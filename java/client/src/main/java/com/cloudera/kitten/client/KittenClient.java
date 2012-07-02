@@ -23,6 +23,7 @@ import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
+import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 
 import com.cloudera.kitten.client.params.lua.LuaYarnClientParameters;
@@ -92,12 +93,15 @@ public class KittenClient extends Configured implements Tool {
       }
     }
 
-    service.stopAndWait();
-    System.exit(0);
-    return 0;
+    if (service.getFinalReport().getFinalApplicationStatus() == FinalApplicationStatus.SUCCEEDED) {
+      return 0;
+    } else {
+      return 1;
+    }
   }
   
   public static void main(String[] args) throws Exception {
-    ToolRunner.run(new Configuration(), new KittenClient(), args);
+    int rc = ToolRunner.run(new Configuration(), new KittenClient(), args);
+    System.exit(rc);
   }
 }

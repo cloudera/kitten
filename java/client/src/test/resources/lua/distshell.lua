@@ -16,7 +16,7 @@ distshell = yarn {
     env = base_env,
     command = {
       base = "java -Xmx128m com.cloudera.kitten.appmaster.ApplicationMaster",
-      args = { "-conf job.xml" }, -- job.xml contains the client configuration info.
+      args = { "-conf job.xml", "1> <LOG_DIR>/stdout 2> <LOG_DIR>/stderr" }, -- job.xml contains the client configuration info.
     }
   },
 

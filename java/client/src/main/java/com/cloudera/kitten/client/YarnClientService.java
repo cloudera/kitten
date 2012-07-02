@@ -47,4 +47,9 @@ public interface YarnClientService extends Service {
    * cluster.
    */
   boolean isApplicationFinished();
+  
+  /**
+   * Returns the final application report for this job.
+   */
+  ApplicationReport getFinalReport();
 }

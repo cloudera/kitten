@@ -179,6 +179,11 @@ public class YarnClientServiceImpl extends AbstractScheduledService
   }
   
   @Override
+  public ApplicationReport getFinalReport() {
+    return finalReport;
+  }
+  
+  @Override
   public ApplicationReport getApplicationReport() {
     GetApplicationReportRequest reportRequest = Records.newRecord(GetApplicationReportRequest.class);
     reportRequest.setApplicationId(applicationId);
