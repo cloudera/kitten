@@ -9,8 +9,8 @@ base_env = {
 
 distshell = yarn {
   name = "Distributed Shell",
-  timeout = 10000,
-  memory = 128,
+  timeout = 60000,
+  memory = 256,
 
   master = {
     env = base_env,

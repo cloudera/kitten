@@ -44,6 +44,7 @@ public class TestKittenDistributedShell {
   public static void setup() throws InterruptedException, IOException {
     LOG.info("Starting up YARN cluster");
     conf.setInt("yarn.scheduler.fifo.minimum-allocation-mb", 128);
+    conf.set("yarn.nodemanager.vmem-pmem-ratio", "20.0");
     if (yarnCluster == null) {
       yarnCluster = new MiniYARNCluster(TestKittenDistributedShell.class.getName(),
           1, 1, 1);
