@@ -269,10 +269,10 @@ public class ApplicationMasterServiceImpl extends
         if (amStatus.containsKey(containerId)) {
           int exitStatus = amStatus.get(containerId).getExitStatus();
           if (exitStatus == 0) {
-            LOG.debug("Container completed cleanly");
+            LOG.debug(containerId + " completed cleanly");
             complete++;
           } else {
-            LOG.info("Container failed with exit code = " + exitStatus);
+            LOG.info(containerId + " failed with exit code = " + exitStatus);
             failed.add(containerId);
           }
         }
@@ -322,7 +322,7 @@ public class ApplicationMasterServiceImpl extends
 
       this.containerManager = containerManagerFactory.connect(container);
       if (containerManager == null) {
-        LOG.error("Could not connect to container manager for : " + container);
+        LOG.error("Could not connect to manager for : " + container.getId());
         stop();
       }
       
@@ -332,7 +332,7 @@ public class ApplicationMasterServiceImpl extends
       try {
         containerManager.startContainer(startReq);
       } catch (YarnRemoteException e) {
-        LOG.error("Exception starting container: " + container, e);
+        LOG.error("Exception starting " + container.getId(), e);
         stop();
       }
     }
@@ -350,7 +350,7 @@ public class ApplicationMasterServiceImpl extends
         GetContainerStatusResponse resp = containerManager.getContainerStatus(req);
         this.status = resp.getStatus();
       } catch (YarnRemoteException e) {
-        LOG.warn("Exception getting container status", e);
+        LOG.warn("Exception getting status for " + container.getId(), e);
         failedStatusChecks++;
         // TODO: configure this
         if (status == null || failedStatusChecks == 3) {
@@ -360,7 +360,7 @@ public class ApplicationMasterServiceImpl extends
       }
       
       if (status != null) {
-        LOG.info("Current container status: " + status.getState());
+        LOG.info("Current status for " + container.getId() + ": " + status.getState());
       }
       if (status != null && status.getState() == ContainerState.COMPLETE) {
         stop();
@@ -371,7 +371,7 @@ public class ApplicationMasterServiceImpl extends
     protected void shutDown() throws Exception {
       if (status != null && status.getState() != ContainerState.COMPLETE) {
         // We need to explicitly release the container.
-        LOG.info("Stopping container: " + container.getId());
+        LOG.info("Stopping " + container.getId());
         StopContainerRequest req = Records.newRecord(StopContainerRequest.class);
         req.setContainerId(container.getId());
         try {
