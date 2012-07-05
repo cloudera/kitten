@@ -25,6 +25,7 @@ import org.apache.hadoop.util.ToolRunner;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
+import org.apache.log4j.PropertyConfigurator;
 
 import com.cloudera.kitten.client.params.lua.LuaYarnClientParameters;
 import com.cloudera.kitten.client.service.YarnClientServiceImpl;
@@ -101,6 +102,7 @@ public class KittenClient extends Configured implements Tool {
   }
   
   public static void main(String[] args) throws Exception {
+    PropertyConfigurator.configure("log4j/log4j.properties");
     int rc = ToolRunner.run(new Configuration(), new KittenClient(), args);
     System.exit(rc);
   }

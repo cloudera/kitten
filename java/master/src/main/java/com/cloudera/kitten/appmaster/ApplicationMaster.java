@@ -18,6 +18,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.apache.log4j.PropertyConfigurator;
 
 import com.cloudera.kitten.appmaster.params.lua.LuaApplicationMasterParameters;
 import com.cloudera.kitten.appmaster.service.ApplicationMasterServiceImpl;
@@ -41,6 +42,7 @@ public class ApplicationMaster extends Configured implements Tool {
   }
 
   public static void main(String[] args) throws Exception {
+    PropertyConfigurator.configure("log4j/log4j.properties");
     try { 
       int rc = ToolRunner.run(new Configuration(), new ApplicationMaster(), args);
       System.exit(rc);
