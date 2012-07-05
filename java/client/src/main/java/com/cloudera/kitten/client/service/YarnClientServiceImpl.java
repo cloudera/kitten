@@ -102,6 +102,16 @@ public class YarnClientServiceImpl extends AbstractScheduledService
     appContext.setPriority(ContainerLaunchContextFactory.createPriority(appMasterParams.getPriority()));
     submitApplication(appContext);
     
+    // Make sure we stop the application in the case that it isn't done already.
+    Runtime.getRuntime().addShutdownHook(new Thread() {
+      @Override
+      public void run() {
+        if (YarnClientServiceImpl.this.isRunning()) {
+          YarnClientServiceImpl.this.stop();
+        }
+      }
+    });
+    
     stopwatch.start();
   }
   
