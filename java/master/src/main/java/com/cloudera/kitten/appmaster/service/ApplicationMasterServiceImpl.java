@@ -306,7 +306,7 @@ public class ApplicationMasterServiceImpl extends
     private final ContainerLaunchParameters params;
     
     private ContainerManager containerManager;
-    private ContainerStatus status;
+    private ContainerState state;
     private int failedStatusChecks;
     
     public ContainerService(Container container, ContainerLaunchParameters params) {
@@ -348,28 +348,28 @@ public class ApplicationMasterServiceImpl extends
       req.setContainerId(container.getId());
       try {
         GetContainerStatusResponse resp = containerManager.getContainerStatus(req);
-        this.status = resp.getStatus();
+        this.state = resp.getStatus().getState();
       } catch (YarnRemoteException e) {
-        LOG.warn("Exception getting status for " + container.getId(), e);
-        failedStatusChecks++;
-        // TODO: configure this
-        if (status == null || failedStatusChecks == 3) {
-          stop();
-          return;
+        LOG.info("Exception checking status of " + container.getId() + ", stopping");
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Exception details for " + container.getId(), e);
         }
+        this.state = ContainerState.COMPLETE;
+        stop();
+        return;
       }
       
-      if (status != null) {
-        LOG.info("Current status for " + container.getId() + ": " + status.getState());
+      if (state != null) {
+        LOG.info("Current status for " + container.getId() + ": " + state);
       }
-      if (status != null && status.getState() == ContainerState.COMPLETE) {
+      if (state != null && state == ContainerState.COMPLETE) {
         stop();
       }
     }
 
     @Override
     protected void shutDown() throws Exception {
-      if (status != null && status.getState() != ContainerState.COMPLETE) {
+      if (state != null && state != ContainerState.COMPLETE) {
         // We need to explicitly release the container.
         LOG.info("Stopping " + container.getId());
         StopContainerRequest req = Records.newRecord(StopContainerRequest.class);
