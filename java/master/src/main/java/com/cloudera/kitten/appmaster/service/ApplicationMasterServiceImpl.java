@@ -224,10 +224,11 @@ public class ApplicationMasterServiceImpl extends
         handleAllocation(resp);
         completed = checkContainerStatuses(resp);
       }
+      LOG.info(String.format("Completed = %d, Needed = %d", completed, needed));
       return shouldWork();
     }
     
-    private boolean shouldWork() {
+    private boolean shouldWork() {  
       return !stopping && completed < needed;
     }
     
@@ -263,17 +264,25 @@ public class ApplicationMasterServiceImpl extends
         amStatus.put(status.getContainerId(), status);
       }
 
-      int complete = 0;
+      int completeFromStatus = 0;
+      int completeFromService = 0;
       Set<ContainerId> failed = Sets.newHashSet();
       for (ContainerId containerId : services.keySet()) {
-        if (amStatus.containsKey(containerId)) {
-          int exitStatus = amStatus.get(containerId).getExitStatus();
-          if (exitStatus == 0) {
-            LOG.debug(containerId + " completed cleanly");
-            complete++;
-          } else {
-            LOG.info(containerId + " failed with exit code = " + exitStatus);
-            failed.add(containerId);
+        ContainerService service = services.get(containerId);
+        if (service != null) {
+          if (amStatus.containsKey(containerId)) {
+            int exitStatus = amStatus.get(containerId).getExitStatus();
+            if (exitStatus == 0) {
+              LOG.debug(containerId + " completed cleanly");
+              completeFromStatus++;
+            } else {
+              LOG.info(containerId + " failed with exit code = " + exitStatus);
+              failed.add(containerId);
+            }
+            service.markCompleted();
+          } else if (service.state() == State.TERMINATED) {
+            LOG.info("Marking " + containerId + " as completed");
+            completeFromService++;
           }
         }
       }
@@ -287,7 +296,10 @@ public class ApplicationMasterServiceImpl extends
           services.put(failedId, null);
         }
       }
-      return complete;
+      
+      LOG.info(String.format("Completed %d from status check and %d from service check",
+          completeFromStatus, completeFromService));
+      return completeFromStatus + completeFromService;
     }
     
     public void stopServices() {
@@ -307,13 +319,17 @@ public class ApplicationMasterServiceImpl extends
     
     private ContainerManager containerManager;
     private ContainerState state;
-    private int failedStatusChecks;
     
     public ContainerService(Container container, ContainerLaunchParameters params) {
       this.container = container;
       this.params = params;
     }
     
+    public void markCompleted() {
+      this.state = ContainerState.COMPLETE;
+      stop();
+    }
+
     @Override
     protected void startUp() throws Exception {
       ContainerLaunchContext ctxt = containerLaunchContextFactory.create(params);
@@ -358,7 +374,7 @@ public class ApplicationMasterServiceImpl extends
         stop();
         return;
       }
-      
+
       if (state != null) {
         LOG.info("Current status for " + container.getId() + ": " + state);
       }

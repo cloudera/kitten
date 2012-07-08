@@ -190,6 +190,9 @@ public class YarnClientServiceImpl extends AbstractScheduledService
   
   @Override
   public ApplicationReport getFinalReport() {
+    if (!timeout && finalReport == null) {
+      finalReport = getApplicationReport();
+    }
     return finalReport;
   }
   
@@ -209,21 +212,25 @@ public class YarnClientServiceImpl extends AbstractScheduledService
   @Override
   protected void runOneIteration() throws Exception {
     if (isApplicationFinished()) {
+      LOG.info("Nothing to do, application is finished");
       return;
     }
+
+    ApplicationReport report = getApplicationReport();
+    if (report == null) {
+      LOG.error("No application report received");
+    } else if (DONE.contains(report.getYarnApplicationState()) ||
+        report.getFinalApplicationStatus() != FinalApplicationStatus.UNDEFINED) {
+      finalReport = report;
+      stop();
+    }
+    
     // Ensure that we haven't been running for all that long.
     if (parameters.getClientTimeoutMillis() > 0 &&
         stopwatch.elapsedMillis() > parameters.getClientTimeoutMillis()) {
       LOG.warn("Stopping application due to timeout.");
       timeout = true;
-      return;
-    }
-    
-    ApplicationReport report = getApplicationReport();
-    if (report == null) {
-      LOG.error("No application report received");
-    } else if (DONE.contains(report.getYarnApplicationState())) {
-      finalReport = report;
+      stop();
     }
   }
 
