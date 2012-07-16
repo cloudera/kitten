@@ -164,6 +164,7 @@ public class ApplicationMasterServiceImpl extends
     for (ContainerTracker tracker : containerTrackers) {
       tracker.stopServices();
     }
+    this.hasRunningContainers = false;
     
     FinishApplicationMasterRequest finishReq = Records.newRecord(
         FinishApplicationMasterRequest.class);
@@ -194,11 +195,13 @@ public class ApplicationMasterServiceImpl extends
       return;
     }
     
-    boolean moreWork = false;
-    for (ContainerTracker tracker : containerTrackers) {
-      moreWork |= tracker.doWork();
+    if (hasRunningContainers) {
+      boolean moreWork = false;
+      for (ContainerTracker tracker : containerTrackers) {
+        moreWork |= tracker.doWork();
+      }
+      this.hasRunningContainers = moreWork;
     }
-    this.hasRunningContainers = moreWork;
   }
   
   private class ContainerTracker {
