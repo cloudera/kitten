@@ -77,10 +77,9 @@ public class KittenClient extends Configured implements Tool {
     
     String trackingUrl = null;
     while (service.isRunning()) {
-      Thread.sleep(1000);
-
-      ApplicationReport report = service.getApplicationReport();
       if (trackingUrl == null) {
+        Thread.sleep(1000);
+        ApplicationReport report = service.getApplicationReport();
         YarnApplicationState yarnAppState = report.getYarnApplicationState();
         if (yarnAppState == YarnApplicationState.RUNNING) {
           trackingUrl = report.getTrackingUrl();
@@ -91,9 +90,6 @@ public class KittenClient extends Configured implements Tool {
             LOG.info("Master Tracking URL = " + trackingUrl);
           }
         }
-      }
-      if (report.getFinalApplicationStatus() != FinalApplicationStatus.UNDEFINED) {
-        break;
       }
     }
     

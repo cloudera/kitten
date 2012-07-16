@@ -224,7 +224,7 @@ public class ApplicationMasterServiceImpl extends
         handleAllocation(resp);
         completed = checkContainerStatuses(resp);
       }
-      LOG.info(String.format("Completed = %d, Needed = %d", completed, needed));
+      LOG.info(String.format("Total completed Containers = %d", completed));
       return shouldWork();
     }
     
