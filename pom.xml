@@ -28,4 +28,11 @@
     <compiler.plugin.version>2.3.2</compiler.plugin.version>
     <assembly.plugin.version>2.2.1</assembly.plugin.version>
   </properties>
+
+  <distributionManagement>
+    <repository>
+      <id>cloudera-local</id>
+      <url>https://repository.cloudera.com/artifactory/libs-release-local</url>
+    </repository>
+  </distributionManagement>
 </project>
