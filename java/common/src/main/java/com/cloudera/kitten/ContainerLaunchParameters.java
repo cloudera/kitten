@@ -26,19 +26,9 @@ import org.apache.hadoop.yarn.api.records.Resource;
  */
 public interface ContainerLaunchParameters {
   /**
-   * The user to run the container as.
-   */
-  String getUser();
-
-  /**
-   * The requested memory for this container in megabytes.
-   */
-  int getMemory();
-  
-  /**
    * Returns the resources needed for this job, using the cluster min and max as bounds.
    */
-  Resource getContainerResource(Resource clusterMin, Resource clusterMax);
+  Resource getContainerResource(Resource clusterMax);
   
   /**
    * The requested priority for the container.

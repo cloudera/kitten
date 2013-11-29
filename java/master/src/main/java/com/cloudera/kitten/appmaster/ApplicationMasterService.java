@@ -14,8 +14,6 @@
  */
 package com.cloudera.kitten.appmaster;
 
-import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
-
 import com.google.common.util.concurrent.Service;
 
 /**
@@ -28,12 +26,7 @@ public interface ApplicationMasterService extends Service {
    * Returns the parameters used to configure this service.
    */
   ApplicationMasterParameters getParameters();
-  
-  /**
-   * Returns the application attempt ID.
-   */
-  ApplicationAttemptId getApplicationAttemptId();
-  
+
   /**
    * Returns true if there are containers that this application master service is
    * monitoring.

@@ -25,11 +25,9 @@ import org.apache.hadoop.yarn.util.Records;
  */
 public class ContainerLaunchContextFactory {
 
-  private final Resource clusterMin;
   private final Resource clusterMax;
   
-  public ContainerLaunchContextFactory(Resource clusterMin, Resource clusterMax) {
-    this.clusterMin = clusterMin;
+  public ContainerLaunchContextFactory(Resource clusterMax) {
     this.clusterMax = clusterMax;
   }
   
@@ -38,21 +36,14 @@ public class ContainerLaunchContextFactory {
     clc.setCommands(parameters.getCommands());
     clc.setEnvironment(parameters.getEnvironment());
     clc.setLocalResources(parameters.getLocalResources());
-    clc.setResource(parameters.getContainerResource(clusterMin, clusterMax));
-    clc.setUser(parameters.getUser());
     return clc;
   }
   
-  public ResourceRequest createResourceRequest(ContainerLaunchParameters parameters) {
-    ResourceRequest req = Records.newRecord(ResourceRequest.class);
-    req.setCapability(parameters.getContainerResource(clusterMin, clusterMax));
-    req.setPriority(createPriority(parameters.getPriority()));
-    req.setNumContainers(parameters.getNumInstances());
-    req.setHostName("*"); // TODO: get smarter about this.
-    return req;
+  public Resource createResource(ContainerLaunchParameters parameters) {
+    return parameters.getContainerResource(clusterMax);
   }
   
-  public static Priority createPriority(int priority) {
+  public Priority createPriority(int priority) {
     Priority p = Records.newRecord(Priority.class);
     p.setPriority(priority);
     return p;

@@ -3,7 +3,7 @@
 --
 -- To execute, run:
 --
--- hadoop jar kitten-client-0.1.0-jar-with-dependencies.jar distshell.lua distshell
+-- hadoop jar kitten-client-0.2.0-jar-with-dependencies.jar distshell.lua distshell
 --
 -- from a directory that contains the client jar, the master jar, and distshell.lua.
 --
@@ -16,7 +16,7 @@ SHELL_COMMAND = "ls -ltr >> /tmp/kitten_dir_contents"
 CONTAINER_INSTANCES = 2
 -- The location of the jar file containing kitten's default ApplicationMaster
 -- implementation.
-MASTER_JAR_LOCATION = "kitten-master-0.1.0-jar-with-dependencies.jar"
+MASTER_JAR_LOCATION = "kitten-master-0.2.0-jar-with-dependencies.jar"
 
 -- CLASSPATH setup.
 H_SHARE = "/usr/lib/hadoop"

@@ -4,7 +4,7 @@
 
   <groupId>com.cloudera.kitten</groupId>
   <artifactId>kitten-project</artifactId>
-  <version>0.1.0</version>
+  <version>0.2.0</version>
   <packaging>pom</packaging>
 
   <name>Kitten Project</name>
@@ -19,7 +19,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
     <!-- Versions for dependencies -->
-    <hadoop.version>2.0.0-cdh4.1.3</hadoop.version>
+    <hadoop.version>2.2.0</hadoop.version>
     <guava.version>11.0.2</guava.version>
     <luaj.version>2.0.2</luaj.version>
     <junit.version>4.8.2</junit.version>
@@ -28,11 +28,4 @@
     <compiler.plugin.version>2.3.2</compiler.plugin.version>
     <assembly.plugin.version>2.2.1</assembly.plugin.version>
   </properties>
-
-  <distributionManagement>
-    <repository>
-      <id>cloudera-local</id>
-      <url>https://repository.cloudera.com/artifactory/libs-release-local</url>
-    </repository>
-  </distributionManagement>
 </project>

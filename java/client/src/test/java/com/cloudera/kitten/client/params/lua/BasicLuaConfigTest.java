@@ -29,21 +29,17 @@ import org.junit.Test;
 
 import com.cloudera.kitten.ContainerLaunchParameters;
 import com.cloudera.kitten.client.YarnClientParameters;
-import com.cloudera.kitten.client.params.lua.LuaYarnClientParameters;
 import com.cloudera.kitten.util.LocalDataHelper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
 
 public class BasicLuaConfigTest {
 
-  Resource clusterMin;
   Resource clusterMax;
   Configuration conf;
   
   @Before
   public void setUp() throws Exception {
-    clusterMin = Records.newRecord(Resource.class);
-    clusterMin.setMemory(50);
     clusterMax = Records.newRecord(Resource.class);
     clusterMax.setMemory(90);
     conf = new Configuration();
@@ -59,14 +55,12 @@ public class BasicLuaConfigTest {
         conf);
     assertEquals("Distributed Shell", params.getApplicationName());
     assertEquals(86400L, params.getClientTimeoutMillis());
-    assertEquals("", params.getQueue());
+    assertEquals("default", params.getQueue());
     
     ContainerLaunchParameters clp = params.getApplicationMasterParameters(null);
-    assertEquals("josh", clp.getUser());
     assertEquals(1, clp.getPriority());
-    assertEquals(100, clp.getMemory());
     // clusterMax = 90 < 100
-    assertEquals(clusterMax, clp.getContainerResource(clusterMin, clusterMax));
+    assertEquals(clusterMax, clp.getContainerResource(clusterMax));
     Map<String, String> expEnv = ImmutableMap.of(
         "zs", "10", "a", "b", "fiz", "faz", "foo", "foo", "biz", "baz");
     Map<String, String> actEnv = clp.getEnvironment();

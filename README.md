@@ -22,15 +22,11 @@ To build Kitten, run:
 
 from this directory. That will build the common, master, and client subprojects.
 
-Kitten is developed against CDH4, which ships with an experimental YARN
-module. [Cloudera Manager](https://ccp.cloudera.com/display/SUPPORT/Cloudera+Manager+Downloads)
-is the easiest way to get a Hadoop cluster with YARN up and running.
-
 The `java/examples/distshell` directory contains an example configuration file
 that can be used to run the Kitten version of the Distributed Shell example
-application that ships with Hadoop 2.0.0. To run the example, execute:
+application that ships with Hadoop 2.2.0. To run the example, execute:
 
-	hadoop jar kitten-client-0.1.0-jar-with-dependencies.jar distshell.lua distshell
+	hadoop jar kitten-client-0.2.0-jar-with-dependencies.jar distshell.lua distshell
 
 where the jar file is in the `java/client/target` directory. You should also copy the
 application master jar file from `java/master/target` to a directory where it can be

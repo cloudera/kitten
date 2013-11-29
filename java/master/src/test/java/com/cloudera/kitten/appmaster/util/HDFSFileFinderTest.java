@@ -26,7 +26,7 @@ public class HDFSFileFinderTest {
   protected static Configuration conf = new Configuration();
   protected static int numDataNodes = 5;
   protected static int replicationFactor = 3;
-  protected static long blockSize = 8; // should be power of 2
+  protected static long blockSize = (long) Math.pow(2, 20); // should be power of 2
   
   @BeforeClass
   public static void setup() throws InterruptedException, IOException {

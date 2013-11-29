@@ -58,11 +58,6 @@ public class LuaContainerLaunchParameters implements ContainerLaunchParameters {
     this(lv, conf, localFileUris, new Extras());
   }
   
-  public LuaContainerLaunchParameters(LuaValue lv, Configuration conf,
-      Map<String, URI> localFileUris, Extras extras) {
-    this(new LuaWrapper(lv.checktable()), conf, localFileUris, extras);
-  }
-  
   public LuaContainerLaunchParameters(LuaWrapper lv, Configuration conf,
       Map<String, URI> localFileUris, Extras extras) {
     this.lv = lv;
@@ -71,33 +66,19 @@ public class LuaContainerLaunchParameters implements ContainerLaunchParameters {
     this.extras = extras;
   }
 
-  
-  @Override
-  public String getUser() {
-    if (!lv.isNil(LuaFields.USER)) {
-      String user = lv.getString(LuaFields.USER);
-      if (!user.isEmpty()) {
-        return user;
-      }
-    }
-    
-    try {
-      return UserGroupInformation.getCurrentUser().getShortUserName();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+  public int getCores() {
+    return lv.getInteger(LuaFields.CORES);
   }
 
-  @Override
   public int getMemory() {
     return lv.getInteger(LuaFields.MEMORY);
   }
 
   @Override
-  public Resource getContainerResource(Resource clusterMin, Resource clusterMax) {
+  public Resource getContainerResource(Resource clusterMax) {
     Resource rsrc = Records.newRecord(Resource.class);
-    rsrc.setMemory(Math.min(clusterMax.getMemory(),
-        Math.max(clusterMin.getMemory(), getMemory())));
+    rsrc.setMemory(Math.min(clusterMax.getMemory(), getMemory()));
+    rsrc.setVirtualCores(Math.min(clusterMax.getVirtualCores(), getCores()));
     return rsrc;
   }
 

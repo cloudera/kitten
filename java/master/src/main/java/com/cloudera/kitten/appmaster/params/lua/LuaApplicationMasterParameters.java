@@ -20,10 +20,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.yarn.api.ApplicationConstants;
-import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
-import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.hadoop.yarn.util.ConverterUtils;
 
 import com.cloudera.kitten.ContainerLaunchParameters;
 import com.cloudera.kitten.appmaster.ApplicationMasterParameters;
@@ -36,25 +32,20 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import org.apache.hadoop.net.NetUtils;
 
-public class LuaApplicationMasterParameters implements
-    ApplicationMasterParameters {
+public class LuaApplicationMasterParameters implements ApplicationMasterParameters {
   
   private final LuaWrapper env;
-  private final ApplicationAttemptId applicationAttemptId;
   private final Configuration conf;
   private final Map<String, URI> localToUris;
-  
-  private String hostname = "";
+  private final String hostname;
+
   private int clientPort = 0;
   private String trackingUrl = "";
-    
+
   public LuaApplicationMasterParameters(Configuration conf) {
     this(LuaFields.KITTEN_LUA_CONFIG_FILE, System.getenv(LuaFields.KITTEN_JOB_NAME), conf);
-  }
-  
-  public LuaApplicationMasterParameters(Configuration conf, Map<String, Object> extras) {
-    this(LuaFields.KITTEN_LUA_CONFIG_FILE, System.getenv(LuaFields.KITTEN_JOB_NAME), conf, extras);
   }
   
   public LuaApplicationMasterParameters(String script, String jobName, Configuration conf) {
@@ -63,29 +54,17 @@ public class LuaApplicationMasterParameters implements
   
   public LuaApplicationMasterParameters(String script, String jobName,
       Configuration conf, Map<String, Object> extras) {
-    this(script, jobName, conf, extras, loadApplicationAttemptId(), loadLocalToUris());
+    this(script, jobName, conf, extras, loadLocalToUris());
   }
   
   public LuaApplicationMasterParameters(String script, String jobName,
       Configuration conf,
       Map<String, Object> extras,
-      ApplicationAttemptId applicationAttemptId,
       Map<String, URI> localToUris) {
     this.env = new LuaWrapper(script, loadExtras(extras)).getTable(jobName);
     this.conf = conf;
-    this.applicationAttemptId = applicationAttemptId;
     this.localToUris = localToUris;
-  }
-  
-  private static ApplicationAttemptId loadApplicationAttemptId() {
-    Map<String, String> e = System.getenv();
-    if (e.containsKey(ApplicationConstants.AM_CONTAINER_ID_ENV)) {
-      ContainerId containerId = ConverterUtils.toContainerId(
-          e.get(ApplicationConstants.AM_CONTAINER_ID_ENV));
-      return containerId.getApplicationAttemptId();
-    }
-    throw new IllegalStateException(
-        "Could not find application attempt ID in environment variables");
+    this.hostname = NetUtils.getHostname();
   }
   
   private static Map<String, URI> loadLocalToUris() {
@@ -113,20 +92,13 @@ public class LuaApplicationMasterParameters implements
   }
   
   @Override
-  public ApplicationMasterParameters setHostname(String hostname) {
-    this.hostname = hostname;
-    return this;
-  }
-
-  @Override
   public String getHostname() {
     return hostname;
   }
 
   @Override
-  public ApplicationMasterParameters setClientPort(int clientPort) {
+  public void setClientPort(int clientPort) {
     this.clientPort = clientPort;
-    return this;
   }
 
   @Override
@@ -135,24 +107,14 @@ public class LuaApplicationMasterParameters implements
   }
 
   @Override
-  public ApplicationMasterParameters setTrackingUrl(String trackingUrl) {
+  public void setTrackingUrl(String trackingUrl) {
     this.trackingUrl = trackingUrl;
-    return this;
   }
 
   @Override
   public String getTrackingUrl() {
-    if (trackingUrl.isEmpty() && !hostname.isEmpty()) {
-      return String.format("%s:%d", hostname, clientPort);
-    }
     return trackingUrl;
   }
-
-  @Override
-  public ApplicationAttemptId getApplicationAttemptId() {
-    return applicationAttemptId;
-  }
-
 
   @Override
   public int getAllowedFailures() {

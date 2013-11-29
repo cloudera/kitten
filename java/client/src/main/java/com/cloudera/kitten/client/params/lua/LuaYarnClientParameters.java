@@ -100,7 +100,7 @@ public class LuaYarnClientParameters implements YarnClientParameters {
 
   @Override
   public String getQueue() {
-    return env.isNil(LuaFields.QUEUE) ? "" : env.getString(LuaFields.QUEUE);
+    return env.isNil(LuaFields.QUEUE) ? "default" : env.getString(LuaFields.QUEUE);
   }
 
   @Override

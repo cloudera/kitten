@@ -30,8 +30,7 @@ public class ApplicationMaster extends Configured implements Tool {
   @Override
   public int run(String[] args) throws Exception {
     ApplicationMasterParameters params = new LuaApplicationMasterParameters(getConf());
-    ApplicationMasterService service = new ApplicationMasterServiceImpl(params);
-    
+    ApplicationMasterService service = new ApplicationMasterServiceImpl(params, getConf());
     service.startAndWait();
     while (service.hasRunningContainers()) {
       Thread.sleep(1000);

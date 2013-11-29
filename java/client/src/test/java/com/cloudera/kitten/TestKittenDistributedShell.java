@@ -50,6 +50,7 @@ public class TestKittenDistributedShell {
           1, 1, 1);
       yarnCluster.init(conf);
       yarnCluster.start();
+      conf = yarnCluster.getConfig();
     }
     try {
       Thread.sleep(2000);
@@ -71,8 +72,11 @@ public class TestKittenDistributedShell {
     String config = "/lua/distshell.lua";
 
     // For the outputs
-    File tmpFile = File.createTempFile("distshell", ".txt");
-    tmpFile.deleteOnExit();
+    File tmpFile = new File("/tmp/distshell.out");
+    if (tmpFile.exists()) {
+      tmpFile.delete();
+    }
+    //tmpFile.deleteOnExit();
 
     KittenClient client = new KittenClient(
         ImmutableMap.<String, Object>of(
@@ -80,8 +84,8 @@ public class TestKittenDistributedShell {
             "PWD", (new File(".")).getAbsolutePath()));
     conf.set(LocalDataHelper.APP_BASE_DIR, "file:///tmp/");
     client.setConf(conf);
-    
-    assertEquals(0, client.run(new String[] { config, "distshell" }));
+    System.out.println("Running...");
+    assertEquals(0, client.run(new String[]{config, "distshell"}));
     assertEquals(12, Files.readLines(tmpFile, Charsets.UTF_8).size()); 
   }
 }

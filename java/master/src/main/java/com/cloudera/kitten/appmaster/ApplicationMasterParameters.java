@@ -17,7 +17,6 @@ package com.cloudera.kitten.appmaster;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 
 import com.cloudera.kitten.ContainerLaunchParameters;
 
@@ -33,11 +32,6 @@ public interface ApplicationMasterParameters {
   Configuration getConfiguration();
   
   /**
-   * Returns the attempt ID for this application.
-   */
-  ApplicationAttemptId getApplicationAttemptId();
-  
-  /**
    * Returns the parameters that will be used to launch the child containers for
    * this application.
    */
@@ -50,32 +44,26 @@ public interface ApplicationMasterParameters {
   int getAllowedFailures();
 
   /**
-   * Sets the hostname the master is running on. This information is communicated to the
-   * resource manager and is then passed along to the client by YARN.
-   */
-  ApplicationMasterParameters setHostname(String hostname);
-  
-  /**
    * Returns the hostname that was set for this application master.
    */
   String getHostname();
-  
+
   /**
-   * Sets the port the master is listening on for client requests. This information is
-   * communicated to the resource manager and is then passed along to the client by YARN.
+   * TODO
+   * @param clientPort
    */
-  ApplicationMasterParameters setClientPort(int port);
-  
+  void setClientPort(int clientPort);
+
   /**
    * Returns the client port that was set for this application master.
    */
   int getClientPort();
-  
+
   /**
-   * Sets a tracking URL for the client. If it is not specified, the combination of the
-   * hostname and the client port will be used.
+   * TODO
+   * @param trackingUrl
    */
-  ApplicationMasterParameters setTrackingUrl(String url);
+  void setTrackingUrl(String trackingUrl);
 
   /**
    * Returns the tracking URL that was set for this application master.

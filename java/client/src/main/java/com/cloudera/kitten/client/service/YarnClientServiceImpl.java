@@ -14,27 +14,23 @@
  */
 package com.cloudera.kitten.client.service;
 
+import java.io.IOException;
 import java.util.EnumSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.yarn.api.ClientRMProtocol;
-import org.apache.hadoop.yarn.api.protocolrecords.GetApplicationReportRequest;
-import org.apache.hadoop.yarn.api.protocolrecords.GetApplicationReportResponse;
-import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationRequest;
 import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationResponse;
-import org.apache.hadoop.yarn.api.protocolrecords.KillApplicationRequest;
-import org.apache.hadoop.yarn.api.protocolrecords.SubmitApplicationRequest;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
-import org.apache.hadoop.yarn.exceptions.YarnRemoteException;
-import org.apache.hadoop.yarn.util.Records;
+import org.apache.hadoop.yarn.client.api.YarnClient;
+import org.apache.hadoop.yarn.client.api.YarnClientApplication;
+import org.apache.hadoop.yarn.exceptions.YarnException;
 
 import com.cloudera.kitten.ContainerLaunchContextFactory;
 import com.cloudera.kitten.ContainerLaunchParameters;
@@ -58,48 +54,45 @@ public class YarnClientServiceImpl extends AbstractScheduledService
   private static final Log LOG = LogFactory.getLog(YarnClientServiceImpl.class);
   
   private final YarnClientParameters parameters;
-  private final MasterConnectionFactory<ClientRMProtocol> applicationsManagerFactory;
+  private final MasterConnectionFactory<YarnClient> yarnClientFactory;
   private final Stopwatch stopwatch;
   
-  private ClientRMProtocol applicationsManager;
+  private YarnClient yarnClient;
   private ApplicationId applicationId;
   private ApplicationReport finalReport;
   private boolean timeout = false;
   
   public YarnClientServiceImpl(YarnClientParameters params) {
-    this(params, new ApplicationsManagerConnectionFactory(params.getConfiguration()),
+    this(params, new YarnClientFactory(params.getConfiguration()),
         new Stopwatch());
   }
   
   public YarnClientServiceImpl(YarnClientParameters parameters,
-      MasterConnectionFactory<ClientRMProtocol> applicationsManagerFactory,
+      MasterConnectionFactory<YarnClient> yarnClientFactory,
       Stopwatch stopwatch) {
     this.parameters = Preconditions.checkNotNull(parameters);
-    this.applicationsManagerFactory = applicationsManagerFactory;
+    this.yarnClientFactory = yarnClientFactory;
     this.stopwatch = stopwatch;
   }
   
   @Override
   protected void startUp() {
-    this.applicationsManager = applicationsManagerFactory.connect();
+    this.yarnClient = yarnClientFactory.connect();
+    YarnClientApplication clientApp = getNewApplication();
+    GetNewApplicationResponse newApp = clientApp.getNewApplicationResponse();
+    ContainerLaunchContextFactory clcFactory = new ContainerLaunchContextFactory(newApp.getMaximumResourceCapability());
     
-    GetNewApplicationResponse newApp = getNewApplication();
-    this.applicationId = newApp.getApplicationId();
-    ContainerLaunchContextFactory clcFactory = new ContainerLaunchContextFactory(
-        newApp.getMinimumResourceCapability(), newApp.getMaximumResourceCapability());
-    
-    LOG.info("Setting up application submission context for the application master");
-    ApplicationSubmissionContext appContext = Records.newRecord(ApplicationSubmissionContext.class);
-    appContext.setApplicationId(applicationId);
+    ApplicationSubmissionContext appContext = clientApp.getApplicationSubmissionContext();
+    this.applicationId = appContext.getApplicationId();
     appContext.setApplicationName(parameters.getApplicationName());
     
     // Setup the container for the application master.
     ContainerLaunchParameters appMasterParams = parameters.getApplicationMasterParameters(applicationId);
     ContainerLaunchContext clc = clcFactory.create(appMasterParams);
+    appContext.setResource(clcFactory.createResource(appMasterParams));
     appContext.setAMContainerSpec(clc);
-    appContext.setUser(appMasterParams.getUser());
     appContext.setQueue(parameters.getQueue());
-    appContext.setPriority(ContainerLaunchContextFactory.createPriority(appMasterParams.getPriority()));
+    appContext.setPriority(clcFactory.createPriority(appMasterParams.getPriority()));
     submitApplication(appContext);
     
     // Make sure we stop the application in the case that it isn't done already.
@@ -116,23 +109,26 @@ public class YarnClientServiceImpl extends AbstractScheduledService
   }
   
   private void submitApplication(ApplicationSubmissionContext appContext) {
-    SubmitApplicationRequest appRequest = Records.newRecord(SubmitApplicationRequest.class);
-    appRequest.setApplicationSubmissionContext(appContext);
-
     LOG.info("Submitting application to the applications manager");
     try {
-      applicationsManager.submitApplication(appRequest);
-    } catch (YarnRemoteException e) {
+      yarnClient.submitApplication(appContext);
+    } catch (YarnException e) {
       LOG.error("Exception thrown submitting application", e);
       stop();
-    }    
+    } catch (IOException e) {
+      LOG.error("IOException thrown submitting application", e);
+      stop();
+    }
   }
   
-  private GetNewApplicationResponse getNewApplication() {
+  private YarnClientApplication getNewApplication() {
     try {
-      return applicationsManager.getNewApplication(Records.newRecord(GetNewApplicationRequest.class));
-    } catch (YarnRemoteException e) {
+      return yarnClient.createApplication();
+    } catch (YarnException e) {
       LOG.error("Exception thrown getting new application", e);
+      stop();
+      return null;
+    } catch (IOException e) {
       stop();
       return null;
     }
@@ -143,30 +139,34 @@ public class YarnClientServiceImpl extends AbstractScheduledService
     if (finalReport != null) {
       YarnApplicationState state = finalReport.getYarnApplicationState();
       FinalApplicationStatus status = finalReport.getFinalApplicationStatus();
+      String diagnostics = finalReport.getDiagnostics();
       if (YarnApplicationState.FINISHED == state) {
         if (FinalApplicationStatus.SUCCEEDED == status) {
           LOG.info("Application completed successfully.");
         }
         else {
           LOG.info("Application finished unsuccessfully."
-              + " State=" + state.toString() + ", FinalStatus=" + status.toString());
+              + " State = " + state.toString() + ", FinalStatus = " + status.toString());
         }             
       }
       else if (YarnApplicationState.KILLED == state 
           || YarnApplicationState.FAILED == state) {
         LOG.info("Application did not complete successfully."
-            + " State=" + state.toString() + ", FinalStatus=" + status.toString());
+            + " State = " + state.toString() + ", FinalStatus = " + status.toString());
+        if (diagnostics != null) {
+          LOG.info("Diagnostics = " + diagnostics);
+        }
       }
     } else {
       // Otherwise, we need to kill the application, if it was created.
       if (applicationId != null) {
         LOG.info("Killing application id = " + applicationId);
-        KillApplicationRequest request = Records.newRecord(KillApplicationRequest.class);
-        request.setApplicationId(applicationId);
         try {
-          applicationsManager.forceKillApplication(request);
-        } catch (YarnRemoteException e) {
+          yarnClient.killApplication(applicationId);
+        } catch (YarnException e) {
           LOG.error("Exception thrown killing application", e);
+        } catch (IOException e) {
+          LOG.error("IOException thrown killing application", e);
         }
         LOG.info("Application was killed.");
       }
@@ -198,13 +198,13 @@ public class YarnClientServiceImpl extends AbstractScheduledService
   
   @Override
   public ApplicationReport getApplicationReport() {
-    GetApplicationReportRequest reportRequest = Records.newRecord(GetApplicationReportRequest.class);
-    reportRequest.setApplicationId(applicationId);
     try {
-      GetApplicationReportResponse response = applicationsManager.getApplicationReport(reportRequest);
-      return response.getApplicationReport();    
-    } catch (YarnRemoteException e) {
+      return yarnClient.getApplicationReport(applicationId);
+    } catch (YarnException e) {
       LOG.error("Exception occurred requesting application report", e);
+      return null;
+    } catch (IOException e) {
+      LOG.error("IOException occurred requesting application report", e);
       return null;
     }
   }

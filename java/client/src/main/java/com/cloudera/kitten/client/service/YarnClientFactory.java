@@ -14,39 +14,30 @@
  */
 package com.cloudera.kitten.client.service;
 
-import java.net.InetSocketAddress;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.net.NetUtils;
-import org.apache.hadoop.yarn.api.ClientRMProtocol;
+import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
-import org.apache.hadoop.yarn.ipc.YarnRPC;
 
 import com.cloudera.kitten.MasterConnectionFactory;
 import com.google.common.base.Preconditions;
 
-public class ApplicationsManagerConnectionFactory implements
-    MasterConnectionFactory<ClientRMProtocol> {
+public class YarnClientFactory implements MasterConnectionFactory<YarnClient> {
 
-  private static final Log LOG = LogFactory.getLog(ApplicationsManagerConnectionFactory.class);
+  private static final Log LOG = LogFactory.getLog(YarnClientFactory.class);
   
   private final Configuration conf;
-  private final YarnRPC rpc;
-  
-  public ApplicationsManagerConnectionFactory(Configuration conf) {
+
+  public YarnClientFactory(Configuration conf) {
     this.conf = Preconditions.checkNotNull(conf);
-    this.rpc = YarnRPC.create(conf);
   }
   
   @Override
-  public ClientRMProtocol connect() {
-    YarnConfiguration yarnConf = new YarnConfiguration(conf);
-    InetSocketAddress rmAddress = NetUtils.createSocketAddr(yarnConf.get(
-        YarnConfiguration.RM_ADDRESS,
-        YarnConfiguration.DEFAULT_RM_ADDRESS));     
-    LOG.info("Connecting to ResourceManager at: " + rmAddress);
-    return ((ClientRMProtocol) rpc.getProxy(ClientRMProtocol.class, rmAddress, conf));
+  public YarnClient connect() {
+    YarnClient client = YarnClient.createYarnClient();
+    client.init(new YarnConfiguration(conf));
+    client.start();
+    return client;
   }
 }

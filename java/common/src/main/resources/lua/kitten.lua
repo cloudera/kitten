@@ -33,7 +33,7 @@ function yarn(t)
   end
 
   t.name = t_check(t.name, "name", "string")
-  t.queue = t_check(t.queue or "", "queue", "string")
+  t.queue = t_check(t.queue or "default", "queue", "string")
   t.user = t_check(t.user or "", "user", "string")
   t.timeout = t_check(t.timeout or -1, "timeout", "number")
 

@@ -14,90 +14,69 @@
  */
 package com.cloudera.kitten.appmaster.service;
 
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.cloudera.kitten.ContainerLaunchContextFactory;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.yarn.api.AMRMProtocol;
-import org.apache.hadoop.yarn.api.ContainerManager;
-import org.apache.hadoop.yarn.api.protocolrecords.AllocateRequest;
-import org.apache.hadoop.yarn.api.protocolrecords.AllocateResponse;
-import org.apache.hadoop.yarn.api.protocolrecords.FinishApplicationMasterRequest;
-import org.apache.hadoop.yarn.api.protocolrecords.GetContainerStatusRequest;
-import org.apache.hadoop.yarn.api.protocolrecords.GetContainerStatusResponse;
-import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterRequest;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
-import org.apache.hadoop.yarn.api.protocolrecords.StartContainerRequest;
-import org.apache.hadoop.yarn.api.protocolrecords.StopContainerRequest;
-import org.apache.hadoop.yarn.api.records.AMResponse;
-import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.Container;
+import org.apache.hadoop.yarn.api.records.ContainerExitStatus;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
-import org.apache.hadoop.yarn.api.records.ContainerState;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
-import org.apache.hadoop.yarn.api.records.ResourceRequest;
-import org.apache.hadoop.yarn.exceptions.YarnRemoteException;
-import org.apache.hadoop.yarn.util.Records;
+import org.apache.hadoop.yarn.api.records.NodeReport;
+import org.apache.hadoop.yarn.api.records.Priority;
+import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.client.api.AMRMClient;
+import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
+import org.apache.hadoop.yarn.client.api.async.NMClientAsync;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
-import com.cloudera.kitten.ContainerLaunchContextFactory;
 import com.cloudera.kitten.ContainerLaunchParameters;
-import com.cloudera.kitten.MasterConnectionFactory;
 import com.cloudera.kitten.appmaster.ApplicationMasterParameters;
 import com.cloudera.kitten.appmaster.ApplicationMasterService;
-import com.cloudera.kitten.appmaster.ContainerManagerConnectionFactory;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.AbstractScheduledService;
 
 public class ApplicationMasterServiceImpl extends
-    AbstractScheduledService implements ApplicationMasterService {
+    AbstractScheduledService implements ApplicationMasterService,
+    AMRMClientAsync.CallbackHandler {
 
   private static final Log LOG = LogFactory.getLog(ApplicationMasterServiceImpl.class);
 
   private final ApplicationMasterParameters parameters;
-  private final MasterConnectionFactory<AMRMProtocol> resourceManagerFactory;
-  private final ContainerManagerConnectionFactory containerManagerFactory;
-  private final List<ContainerTracker> containerTrackers;
-  private final AtomicInteger newRequestId = new AtomicInteger();
+  private final YarnConfiguration conf;
+  private AtomicInteger totalRequested = new AtomicInteger();
+  private AtomicInteger totalCompleted = new AtomicInteger();
   private final AtomicInteger totalFailures = new AtomicInteger();
-  
-  private AMRMProtocol resourceManager;
-  private ContainerLaunchContextFactory containerLaunchContextFactory;
+  private final List<ContainerTracker> trackers = Lists.newArrayList();
+
+  private AMRMClientAsync resourceManager;
   private boolean hasRunningContainers = false;
-  
-  public ApplicationMasterServiceImpl(ApplicationMasterParameters params) {
-    this(params, new ResourceManagerConnectionFactory(params.getConfiguration()),
-        new ContainerManagerConnectionFactoryImpl(params.getConfiguration()));
-  }
-  
-  public ApplicationMasterServiceImpl(ApplicationMasterParameters parameters,
-      MasterConnectionFactory<AMRMProtocol> resourceManagerFactory,
-      ContainerManagerConnectionFactory containerManagerFactory) {
+  private Throwable throwable;
+
+  public ApplicationMasterServiceImpl(ApplicationMasterParameters parameters, Configuration conf) {
     this.parameters = Preconditions.checkNotNull(parameters);
-    this.resourceManagerFactory = resourceManagerFactory;
-    this.containerManagerFactory = containerManagerFactory;
-    this.containerTrackers = Lists.newArrayList();
+    this.conf = new YarnConfiguration(conf);
   }
 
   @Override
   public ApplicationMasterParameters getParameters() {
     return parameters;
   }
-  
-  @Override
-  public ApplicationAttemptId getApplicationAttemptId() {
-    return parameters.getApplicationAttemptId();
-  }
-  
+
   @Override
   public boolean hasRunningContainers() {
     return hasRunningContainers;
@@ -105,80 +84,58 @@ public class ApplicationMasterServiceImpl extends
   
   @Override
   protected void startUp() {
-    this.resourceManager = resourceManagerFactory.connect();
-    
-    RegisterApplicationMasterResponse registration = null;
+    this.resourceManager = AMRMClientAsync.createAMRMClientAsync(1000, this);
+    this.resourceManager.init(conf);
+    this.resourceManager.start();
+
+    RegisterApplicationMasterResponse registration;
     try {
       registration = resourceManager.registerApplicationMaster(
-          createRegistrationRequest());
-    } catch (YarnRemoteException e) {
+          parameters.getHostname(),
+          parameters.getClientPort(),
+          parameters.getTrackingUrl());
+    } catch (Exception e) {
       LOG.error("Exception thrown registering application master", e);
       stop();
       return;
     }
-    
-    this.containerLaunchContextFactory = new ContainerLaunchContextFactory(
-        registration.getMinimumResourceCapability(), registration.getMaximumResourceCapability());
-    
-    List<ContainerLaunchParameters> containerParameters = parameters.getContainerLaunchParameters();
-    if (containerParameters.isEmpty()) {
-      LOG.warn("No container configurations specified");
-      stop();
-      return;
-    }
-    for (int i = 0; i < containerParameters.size(); i++) {
-      ContainerLaunchParameters clp = containerParameters.get(i);
-      containerTrackers.add(new ContainerTracker(clp));
+
+    ContainerLaunchContextFactory factory = new ContainerLaunchContextFactory(
+        registration.getMaximumResourceCapability());
+    for (ContainerLaunchParameters clp : parameters.getContainerLaunchParameters()) {
+      ContainerTracker tracker = new ContainerTracker(clp);
+      tracker.init(factory);
+      trackers.add(tracker);
     }
     this.hasRunningContainers = true;
-  }
-  
-  private AMResponse allocate(int id, ResourceRequest request, List<ContainerId> releases) {
-    AllocateRequest req = Records.newRecord(AllocateRequest.class);
-    req.setResponseId(id);
-    req.setApplicationAttemptId(parameters.getApplicationAttemptId());
-    req.addAsk(request);
-    req.addAllReleases(releases);
-    try {
-      return resourceManager.allocate(req).getAMResponse();
-    } catch (YarnRemoteException e) {
-      LOG.warn("Exception thrown during resource request", e);
-      return Records.newRecord(AllocateResponse.class).getAMResponse();
-    }
-  }
-  
-  private RegisterApplicationMasterRequest createRegistrationRequest() {
-    RegisterApplicationMasterRequest req = Records.newRecord(
-        RegisterApplicationMasterRequest.class);
-    req.setApplicationAttemptId(parameters.getApplicationAttemptId());
-    req.setHost(parameters.getHostname());
-    req.setRpcPort(parameters.getClientPort());
-    req.setTrackingUrl(parameters.getTrackingUrl());
-    return req;
   }
   
   @Override
   protected void shutDown() {
     // Stop the containers in the case that we're finishing because of a timeout.
     LOG.info("Stopping trackers");
-    for (ContainerTracker tracker : containerTrackers) {
-      tracker.stopServices();
-    }
     this.hasRunningContainers = false;
-    
-    FinishApplicationMasterRequest finishReq = Records.newRecord(
-        FinishApplicationMasterRequest.class);
-    finishReq.setAppAttemptId(getApplicationAttemptId());
+
+    for (ContainerTracker tracker : trackers) {
+      if (tracker.hasRunningContainers()) {
+        tracker.kill();
+      }
+    }
+    FinalApplicationStatus status;
+    String message = null;
     if (state() == State.FAILED || totalFailures.get() > parameters.getAllowedFailures()) {
       //TODO: diagnostics
-      finishReq.setFinishApplicationStatus(FinalApplicationStatus.FAILED);
+      status = FinalApplicationStatus.FAILED;
+      if (throwable != null) {
+        message = throwable.getLocalizedMessage();
+      }
     } else {
-      finishReq.setFinishApplicationStatus(FinalApplicationStatus.SUCCEEDED);
+      status = FinalApplicationStatus.SUCCEEDED;
     }
-    LOG.info("Sending finish request with status = " + finishReq.getFinalApplicationStatus());
+    LOG.info("Sending finish request with status = " + status);
     try {
-      resourceManager.finishApplicationMaster(finishReq);
-    } catch (YarnRemoteException e) {
+      resourceManager.unregisterApplicationMaster(status, message, null);
+    } catch (Exception e) {
       LOG.error("Error finishing application master", e);
     }
   }
@@ -190,215 +147,194 @@ public class ApplicationMasterServiceImpl extends
   
   @Override
   protected void runOneIteration() throws Exception {
-    if (totalFailures.get() > parameters.getAllowedFailures()) {
+    if (totalFailures.get() > parameters.getAllowedFailures() ||
+        totalCompleted.get() == totalRequested.get()) {
       stop();
-      return;
-    }
-    
-    if (hasRunningContainers) {
-      boolean moreWork = false;
-      for (ContainerTracker tracker : containerTrackers) {
-        moreWork |= tracker.doWork();
-      }
-      this.hasRunningContainers = moreWork;
     }
   }
-  
-  private class ContainerTracker {
-    private final ContainerLaunchParameters parameters;
-    private final int needed;
-    private final Map<ContainerId, ContainerService> services;
-    private final Map<ContainerId, ContainerStatus> amStatus;
-    
-    private int requested = 0;
-    private int completed = 0;
-    private boolean stopping = false;
-    
-    public ContainerTracker(ContainerLaunchParameters parameters) {
-      this.parameters = parameters;
-      this.needed = parameters.getNumInstances();
-      this.services = Maps.newHashMapWithExpectedSize(needed);
-      this.amStatus = Maps.newHashMapWithExpectedSize(needed);
-    }
-    
-    public boolean doWork() {
-      if (shouldWork()) {
-        AMResponse resp = allocate(newRequestId.incrementAndGet(), createRequest(), getReleases()); 
-        handleAllocation(resp);
-        completed = checkContainerStatuses(resp);
-      }
-      LOG.info(String.format("Total completed Containers = %d", completed));
-      return shouldWork();
-    }
-    
-    private boolean shouldWork() {  
-      return !stopping && completed < needed;
-    }
-    
-    private ResourceRequest createRequest() {
-      ResourceRequest req = containerLaunchContextFactory.createResourceRequest(parameters);
-      req.setNumContainers(needed - requested);
-      if (requested < needed) {
-        requested = needed;
-      }
-      return req;
-    }
-    
-    private List<ContainerId> getReleases() {
-      // TODO: empty for now, but perhaps something for the future.
-      return ImmutableList.of();
-    }
-    
-    private void handleAllocation(AMResponse resp) {
-      List<Container> newContainers = resp.getAllocatedContainers();
-      for (Container container : newContainers) {
-        if (!services.containsKey(container.getId())) {
-          ContainerService cs = new ContainerService(container, parameters);
-          services.put(container.getId(), cs);
-          cs.start();
+
+  // AMRMClientHandler methods
+  @Override
+  public void onContainersCompleted(List<ContainerStatus> containerStatuses) {
+    LOG.info(containerStatuses.size() + " containers have completed");
+    for (ContainerStatus status : containerStatuses) {
+      int exitStatus = status.getExitStatus();
+      if (0 != exitStatus) {
+        // container failed
+        if (ContainerExitStatus.ABORTED != exitStatus) {
+          totalCompleted.incrementAndGet();
+          totalFailures.incrementAndGet();
         } else {
-          LOG.warn("Already have running service for container: " + container.getId().getId());
+          // container was killed by framework, possibly preempted
+          // we should re-try as the container was lost for some reason
         }
+      } else {
+        // nothing to do
+        // container completed successfully
+        totalCompleted.incrementAndGet();
+        LOG.info("Container id = " + status.getContainerId() + " completed successfully");
       }
     }
+  }
 
-    private int checkContainerStatuses(AMResponse resp) {
-      for (ContainerStatus status : resp.getCompletedContainersStatuses()) {
-        amStatus.put(status.getContainerId(), status);
-      }
-
-      int completeFromStatus = 0;
-      int completeFromService = 0;
-      Set<ContainerId> failed = Sets.newHashSet();
-      for (ContainerId containerId : services.keySet()) {
-        ContainerService service = services.get(containerId);
-        if (service != null) {
-          if (amStatus.containsKey(containerId)) {
-            int exitStatus = amStatus.get(containerId).getExitStatus();
-            if (exitStatus == 0) {
-              LOG.debug(containerId + " completed cleanly");
-              completeFromStatus++;
-            } else {
-              LOG.info(containerId + " failed with exit code = " + exitStatus);
-              failed.add(containerId);
-            }
-            service.markCompleted();
-          } else if (service.state() == State.TERMINATED) {
-            LOG.info("Marking " + containerId + " as completed");
-            completeFromService++;
+  @Override
+  public void onContainersAllocated(List<Container> allocatedContainers) {
+    LOG.info("Allocating " + allocatedContainers.size() + " container(s)");
+    Set<Container> assigned = Sets.newHashSet();
+    for (ContainerTracker tracker : trackers) {
+      if (tracker.needsContainers()) {
+        for (Container allocated : allocatedContainers) {
+          if (!assigned.contains(allocated) && tracker.matches(allocated)) {
+            tracker.launchContainer(allocated);
+            assigned.add(allocated);
           }
         }
       }
-      
-      if (!failed.isEmpty()) {
-        totalFailures.addAndGet(failed.size());
-        requested -= failed.size();
-        for (ContainerId failedId : failed) {
-          // Placeholder value so we don't attempt to duplicate a new job in
-          // this container as part of a response from the AM.
-          services.put(failedId, null);
-        }
-      }
-      
-      LOG.info(String.format("Completed %d from status check and %d from service check",
-          completeFromStatus, completeFromService));
-      return completeFromStatus + completeFromService;
     }
-    
-    public void stopServices() {
-      this.stopping = true;
-      for (ContainerService service : services.values()) {
-        if (service != null) {
-          service.stop();
-        }
-      }
-    }
-  }
-  
-  private class ContainerService extends AbstractScheduledService {
-
-    private final Container container;
-    private final ContainerLaunchParameters params;
-    
-    private ContainerManager containerManager;
-    private ContainerState state;
-    
-    public ContainerService(Container container, ContainerLaunchParameters params) {
-      this.container = container;
-      this.params = params;
-    }
-    
-    public void markCompleted() {
-      this.state = ContainerState.COMPLETE;
+    if (assigned.size() < allocatedContainers.size()) {
+      LOG.error(String.format("Not all containers were allocated (%d out of %d)", assigned.size(),
+          allocatedContainers.size()));
       stop();
     }
+  }
+
+  @Override
+  public void onShutdownRequest() {
+    stop();
+  }
+
+  @Override
+  public void onNodesUpdated(List<NodeReport> nodeReports) {
+    //TODO
+  }
+
+  @Override
+  public float getProgress() {
+    int num = 0, den = 0;
+    for (ContainerTracker tracker : trackers) {
+      num += tracker.completed.get();
+      den += tracker.parameters.getNumInstances();
+    }
+    if (den == 0) {
+      return 0.0f;
+    }
+    return ((float) num) / den;
+  }
+
+  @Override
+  public void onError(Throwable throwable) {
+    this.throwable = throwable;
+    stop();
+  }
+
+  private class ContainerTracker implements NMClientAsync.CallbackHandler {
+    private final ContainerLaunchParameters parameters;
+    private final ConcurrentMap<ContainerId, Container> containers = Maps.newConcurrentMap();
+
+    private AtomicInteger needed = new AtomicInteger();
+    private AtomicInteger started = new AtomicInteger();
+    private AtomicInteger completed = new AtomicInteger();
+    private AtomicInteger failed = new AtomicInteger();
+    private NMClientAsync nodeManager;
+    private Resource resource;
+    private Priority priority;
+    private ContainerLaunchContext ctxt;
+
+    public ContainerTracker(ContainerLaunchParameters parameters) {
+      this.parameters = parameters;
+    }
+
+    public void init(ContainerLaunchContextFactory factory) {
+      this.nodeManager = NMClientAsync.createNMClientAsync(this);
+      nodeManager.init(conf);
+      nodeManager.start();
+
+      this.ctxt = factory.create(parameters);
+      this.resource = factory.createResource(parameters);
+      this.priority = factory.createPriority(parameters.getPriority());
+      AMRMClient.ContainerRequest containerRequest = new AMRMClient.ContainerRequest(
+          resource,
+          null, // nodes
+          null, // racks
+          priority);
+      int numInstances = parameters.getNumInstances();
+      for (int j = 0; j < numInstances; j++) {
+        resourceManager.addContainerRequest(containerRequest);
+      }
+      needed.set(numInstances);
+      totalRequested.addAndGet(numInstances);
+    }
 
     @Override
-    protected void startUp() throws Exception {
-      ContainerLaunchContext ctxt = containerLaunchContextFactory.create(params);
-      ctxt.setContainerId(container.getId());
-      ctxt.setResource(container.getResource());
-
-      this.containerManager = containerManagerFactory.connect(container);
-      if (containerManager == null) {
-        LOG.error("Could not connect to manager for : " + container.getId());
-        stop();
-      }
-      
-      StartContainerRequest startReq = Records.newRecord(StartContainerRequest.class);
-      startReq.setContainerLaunchContext(ctxt);
-      LOG.info("Starting container: " + container.getId());
-      try {
-        containerManager.startContainer(startReq);
-      } catch (YarnRemoteException e) {
-        LOG.error("Exception starting " + container.getId(), e);
-        stop();
+    public void onContainerStarted(ContainerId containerId, Map<String, ByteBuffer> allServiceResponse) {
+      Container container = containers.get(containerId);
+      if (container != null) {
+        LOG.info("Starting container id = " + containerId);
+        started.incrementAndGet();
+        nodeManager.getContainerStatusAsync(containerId, container.getNodeId());
       }
     }
 
     @Override
-    protected Scheduler scheduler() {
-      return Scheduler.newFixedRateSchedule(10, 10, TimeUnit.SECONDS);
-    }
-
-    @Override
-    protected void runOneIteration() throws Exception {
-      GetContainerStatusRequest req = Records.newRecord(GetContainerStatusRequest.class);
-      req.setContainerId(container.getId());
-      try {
-        GetContainerStatusResponse resp = containerManager.getContainerStatus(req);
-        this.state = resp.getStatus().getState();
-      } catch (YarnRemoteException e) {
-        LOG.info("Exception checking status of " + container.getId() + ", stopping");
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Exception details for " + container.getId(), e);
-        }
-        this.state = ContainerState.COMPLETE;
-        stop();
-        return;
-      }
-
-      if (state != null) {
-        LOG.info("Current status for " + container.getId() + ": " + state);
-      }
-      if (state != null && state == ContainerState.COMPLETE) {
-        stop();
+    public void onContainerStatusReceived(ContainerId containerId, ContainerStatus containerStatus) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Received status for container: " + containerId + " = " + containerStatus);
       }
     }
 
     @Override
-    protected void shutDown() throws Exception {
-      if (state != null && state != ContainerState.COMPLETE) {
-        // We need to explicitly release the container.
-        LOG.info("Stopping " + container.getId());
-        StopContainerRequest req = Records.newRecord(StopContainerRequest.class);
-        req.setContainerId(container.getId());
-        try {
-          containerManager.stopContainer(req);
-        } catch (YarnRemoteException e) {
-          LOG.warn("Exception thrown stopping container: " + container, e);
-        }
+    public void onContainerStopped(ContainerId containerId) {
+      LOG.info("Stopping container id = " + containerId);
+      containers.remove(containerId);
+      completed.incrementAndGet();
+    }
+
+    @Override
+    public void onStartContainerError(ContainerId containerId, Throwable throwable) {
+      LOG.warn("Start container error for container id = " + containerId, throwable);
+      containers.remove(containerId);
+      completed.incrementAndGet();
+      failed.incrementAndGet();
+    }
+
+    @Override
+    public void onGetContainerStatusError(ContainerId containerId, Throwable throwable) {
+      LOG.error("Could not get status for container: " + containerId, throwable);
+    }
+
+    @Override
+    public void onStopContainerError(ContainerId containerId, Throwable throwable) {
+      LOG.error("Failed to stop container: " + containerId, throwable);
+      completed.incrementAndGet();
+    }
+
+    public boolean needsContainers() {
+      return needed.get() > 0;
+    }
+
+    public boolean matches(Container c) {
+      return true; // TODO
+    }
+
+    public void launchContainer(Container c) {
+      LOG.info("Launching container id = " + c.getId() + " on node = " + c.getNodeId());
+      needed.decrementAndGet();
+      containers.put(c.getId(), c);
+      nodeManager.startContainerAsync(c, ctxt);
+    }
+
+    public boolean hasRunningContainers() {
+      return !containers.isEmpty();
+    }
+
+    public void kill() {
+      for (Container c : containers.values()) {
+        nodeManager.stopContainerAsync(c.getId(), c.getNodeId());
       }
+    }
+
+    public boolean hasMoreContainers() {
+      return needsContainers() || hasRunningContainers();
     }
   }
 }
