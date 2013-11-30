@@ -47,7 +47,11 @@ public class LuaApplicationMasterParameters implements ApplicationMasterParamete
   public LuaApplicationMasterParameters(Configuration conf) {
     this(LuaFields.KITTEN_LUA_CONFIG_FILE, System.getenv(LuaFields.KITTEN_JOB_NAME), conf);
   }
-  
+
+  public LuaApplicationMasterParameters(Configuration conf, Map<String, Object> extras) {
+    this(LuaFields.KITTEN_LUA_CONFIG_FILE, System.getenv(LuaFields.KITTEN_JOB_NAME), conf, extras);
+  }
+
   public LuaApplicationMasterParameters(String script, String jobName, Configuration conf) {
     this(script, jobName, conf, ImmutableMap.<String, Object>of());
   }
