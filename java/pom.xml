@@ -23,14 +23,22 @@
 
   <repositories>
     <repository>
-      <id>maven-hadoop</id>
-      <name>Hadoop Releases</name>
-      <url>https://repository.cloudera.com/content/repositories/releases/</url>
-    </repository>
-    <repository>
-      <id>cloudera-local</id>
-      <name>Cloudera Local</name>
-      <url>https://repository.cloudera.com/artifactory/libs-release-local/</url>
+      <id>cloudera</id>
+      <url>https://repository.cloudera.com/artifactory/cloudera-repos</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
     </repository>
   </repositories>
+
+  <distributionManagement>
+    <repository>
+      <id>cloudera-local</id>
+      <name>Cloudera Snapshots</name>
+      <url>https://repository.cloudera.com/artifactory/libs-release-local/</url>
+    </repository>
+  </distributionManagement>
 </project>
