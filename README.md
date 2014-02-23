@@ -3,7 +3,7 @@
 ## Introduction
 
 Kitten is a set of tools for writing and running applications on YARN,
-the general-purpose resource scheduling framework that ships with Hadoop 2.0.0.
+the general-purpose resource scheduling framework that ships with Hadoop 2.2.0.
 Kitten handles the boilerplate around configuring and launching YARN
 containers, allowing developers to easily deploy distributed applications that
 run under YARN.
@@ -12,7 +12,7 @@ This link provides a useful overview of what is required to create a new YARN
 application, and should also help you understand the motivation for creating
 Kitten.
 
-http://hadoop.apache.org/common/docs/r0.23.0/hadoop-yarn/hadoop-yarn-site/WritingYarnApplications.html
+http://hadoop.apache.org/docs/stable/hadoop-yarn/hadoop-yarn-site/WritingYarnApplications.html
 
 ## Build and Installation
 
