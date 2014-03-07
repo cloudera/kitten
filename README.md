@@ -114,20 +114,23 @@ function.
 2. **memory** (integer, defaults to 512): The amount of memory to allocate for the container, in megabytes.
 If the same amount of memory is allocated for both the master and the containers, you can specify the value
 once inside of the yarn table and it will be linked to the subtables by the `yarn` function.
-3. **instances** (integer, defaults to 1): The number of instances of this container type to create
+3. **cores** (integer, defaults to 1): The number of virtual cores to allocate for the container. If the
+same number of cores are allocated for both the master and the containers, you can specify the value once
+inside of the yarn table and it will be linked to the subtables by the `yarn` function.
+4. **instances** (integer, defaults to 1): The number of instances of this container type to create
 on the cluster. Note that this only applies to the **container/containers** arguments; the system will only
 allocate a single master for each application.
-4. **priority** (integer, defaults to 0): The relative priority of the containers that are allocated. Note
+5. **priority** (integer, defaults to 0): The relative priority of the containers that are allocated. Note
 that this prioritization is internal to each application; it does not control how many resources the
 application is allowed to use or how they are prioritized.
-5. **tolerated_failures** (integer, defaults to 4): This field is only specified on the application master,
+6. **tolerated_failures** (integer, defaults to 4): This field is only specified on the application master,
 and it specifies how many container failures should be tolerated before the application shuts down.
-5. **command/commands** (string(s) or table(s), optional): **command** is a shortcut for **commands** in the
+7. **command/commands** (string(s) or table(s), optional): **command** is a shortcut for **commands** in the
 case that there is only a single command that needs to be executed within each container. This field
 can either be a string that will be run as-is, or it may be a table that contains two subfields: a **base**
 field that is a string and an **args** field that is a table. Kitten will construct a command by concatenating
 the values in the args table to the base string to form the command to execute.
-6. **resources** (table of tables, optional): The resources (in terms of files, URLs, etc.) that the command
+8. **resources** (table of tables, optional): The resources (in terms of files, URLs, etc.) that the command
 needs to run in the container. An outline of the resources fields are given in the following section.
 
 YARN has a mechanism for copying files that are needed by an application to a working directory created
