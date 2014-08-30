@@ -37,7 +37,7 @@
     </dependency>
 
     <dependency>
-      <groupId>luaj</groupId>
+      <groupId>org.luaj</groupId>
       <artifactId>luaj-jse</artifactId>
       <version>${luaj.version}</version>
     </dependency>
