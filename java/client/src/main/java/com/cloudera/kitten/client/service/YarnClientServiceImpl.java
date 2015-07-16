@@ -15,12 +15,19 @@
 package com.cloudera.kitten.client.service;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.EnumSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.io.DataOutputBuffer;
+import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
@@ -30,6 +37,7 @@ import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.client.api.YarnClientApplication;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 
 import com.cloudera.kitten.ContainerLaunchContextFactory;
@@ -76,7 +84,7 @@ public class YarnClientServiceImpl extends AbstractScheduledService
   }
   
   @Override
-  protected void startUp() {
+  protected void startUp() throws IOException {
     this.yarnClient = yarnClientFactory.connect();
     YarnClientApplication clientApp = getNewApplication();
     GetNewApplicationResponse newApp = clientApp.getNewApplicationResponse();
@@ -85,14 +93,36 @@ public class YarnClientServiceImpl extends AbstractScheduledService
     ApplicationSubmissionContext appContext = clientApp.getApplicationSubmissionContext();
     this.applicationId = appContext.getApplicationId();
     appContext.setApplicationName(parameters.getApplicationName());
-    
+
     // Setup the container for the application master.
     ContainerLaunchParameters appMasterParams = parameters.getApplicationMasterParameters(applicationId);
     ContainerLaunchContext clc = clcFactory.create(appMasterParams);
     appContext.setResource(clcFactory.createResource(appMasterParams));
-    appContext.setAMContainerSpec(clc);
     appContext.setQueue(parameters.getQueue());
     appContext.setPriority(clcFactory.createPriority(appMasterParams.getPriority()));
+
+    if (UserGroupInformation.isSecurityEnabled()) {
+      Configuration conf = yarnClient.getConfig();
+      FileSystem fs = FileSystem.get(conf);
+      Credentials credentials = new Credentials();
+      String tokenRenewer = yarnClient.getConfig().get(YarnConfiguration.RM_PRINCIPAL);
+      if (tokenRenewer == null || tokenRenewer.length() == 0) {
+        throw new IOException("Can't get Master Kerberos principal for the RM to use as renewer");
+      }
+      // For now, only getting tokens for the default file-system.
+      final Token<?> tokens[] = fs.addDelegationTokens(tokenRenewer, credentials);
+      if (tokens != null) {
+        for (Token<?> token : tokens) {
+          LOG.info("Got delegation token for " + fs.getUri() + "; " + token);
+        }
+      }
+      DataOutputBuffer dob = new DataOutputBuffer();
+      credentials.writeTokenStorageToStream(dob);
+      ByteBuffer fsTokens = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
+      clc.setTokens(fsTokens);
+    }
+
+    appContext.setAMContainerSpec(clc);
     submitApplication(appContext);
     
     // Make sure we stop the application in the case that it isn't done already.

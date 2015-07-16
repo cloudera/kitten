@@ -4,7 +4,7 @@
 
   <groupId>com.cloudera.kitten</groupId>
   <artifactId>kitten-project</artifactId>
-  <version>0.2.0</version>
+  <version>0.3.0</version>
   <packaging>pom</packaging>
 
   <name>Kitten Project</name>
@@ -31,9 +31,12 @@
 
   <distributionManagement>
     <repository>
-      <id>cloudera-local</id>
-      <name>Cloudera Snapshots</name>
-      <url>https://repository.cloudera.com/artifactory/libs-release-local/</url>
+      <id>crunch.repo</id>
+      <url>https://repository.cloudera.com/artifactory/libs-release-local</url>
     </repository>
+    <snapshotRepository>
+      <id>crunch.snapshots.repo</id>
+      <url>https://repository.cloudera.com/artifactory/libs-snapshot-local</url>
+    </snapshotRepository>
   </distributionManagement>
 </project>
