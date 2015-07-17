@@ -85,22 +85,7 @@ public class YarnClientServiceImpl extends AbstractScheduledService
   
   @Override
   protected void startUp() throws IOException {
-    this.yarnClient = yarnClientFactory.connect();
-    YarnClientApplication clientApp = getNewApplication();
-    GetNewApplicationResponse newApp = clientApp.getNewApplicationResponse();
-    ContainerLaunchContextFactory clcFactory = new ContainerLaunchContextFactory(newApp.getMaximumResourceCapability());
-    
-    ApplicationSubmissionContext appContext = clientApp.getApplicationSubmissionContext();
-    this.applicationId = appContext.getApplicationId();
-    appContext.setApplicationName(parameters.getApplicationName());
-
-    // Setup the container for the application master.
-    ContainerLaunchParameters appMasterParams = parameters.getApplicationMasterParameters(applicationId);
-    ContainerLaunchContext clc = clcFactory.create(appMasterParams);
-    appContext.setResource(clcFactory.createResource(appMasterParams));
-    appContext.setQueue(parameters.getQueue());
-    appContext.setPriority(clcFactory.createPriority(appMasterParams.getPriority()));
-
+    ByteBuffer serializedTokens = null;
     if (UserGroupInformation.isSecurityEnabled()) {
       Configuration conf = yarnClient.getConfig();
       FileSystem fs = FileSystem.get(conf);
@@ -118,10 +103,26 @@ public class YarnClientServiceImpl extends AbstractScheduledService
       }
       DataOutputBuffer dob = new DataOutputBuffer();
       credentials.writeTokenStorageToStream(dob);
-      ByteBuffer fsTokens = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
-      clc.setTokens(fsTokens);
+      serializedTokens = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
     }
 
+    this.yarnClient = yarnClientFactory.connect();
+    YarnClientApplication clientApp = getNewApplication();
+    GetNewApplicationResponse newApp = clientApp.getNewApplicationResponse();
+    ContainerLaunchContextFactory clcFactory = new ContainerLaunchContextFactory(
+        newApp.getMaximumResourceCapability(),
+        serializedTokens);
+    
+    ApplicationSubmissionContext appContext = clientApp.getApplicationSubmissionContext();
+    this.applicationId = appContext.getApplicationId();
+    appContext.setApplicationName(parameters.getApplicationName());
+
+    // Setup the container for the application master.
+    ContainerLaunchParameters appMasterParams = parameters.getApplicationMasterParameters(applicationId);
+    ContainerLaunchContext clc = clcFactory.create(appMasterParams);
+    appContext.setResource(clcFactory.createResource(appMasterParams));
+    appContext.setQueue(parameters.getQueue());
+    appContext.setPriority(clcFactory.createPriority(appMasterParams.getPriority()));
     appContext.setAMContainerSpec(clc);
     submitApplication(appContext);
     

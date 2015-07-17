@@ -20,15 +20,19 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.ResourceRequest;
 import org.apache.hadoop.yarn.util.Records;
 
+import java.nio.ByteBuffer;
+
 /**
  * Functions for constructing YARN objects from the parameter values.
  */
 public class ContainerLaunchContextFactory {
 
   private final Resource clusterMax;
-  
-  public ContainerLaunchContextFactory(Resource clusterMax) {
+  private final ByteBuffer allTokens;
+
+  public ContainerLaunchContextFactory(Resource clusterMax, ByteBuffer allTokens) {
     this.clusterMax = clusterMax;
+    this.allTokens = allTokens;
   }
   
   public ContainerLaunchContext create(ContainerLaunchParameters parameters) {
@@ -36,6 +40,9 @@ public class ContainerLaunchContextFactory {
     clc.setCommands(parameters.getCommands());
     clc.setEnvironment(parameters.getEnvironment());
     clc.setLocalResources(parameters.getLocalResources());
+    if (allTokens != null) {
+      clc.setTokens(allTokens);
+    }
     return clc;
   }
   

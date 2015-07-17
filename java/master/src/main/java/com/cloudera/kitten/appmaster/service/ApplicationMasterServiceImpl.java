@@ -14,7 +14,9 @@
  */
 package com.cloudera.kitten.appmaster.service;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,6 +30,11 @@ import com.google.common.collect.Sets;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.DataOutputBuffer;
+import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.security.token.Token;
+import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerExitStatus;
@@ -49,6 +56,7 @@ import com.cloudera.kitten.appmaster.ApplicationMasterService;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.AbstractScheduledService;
+import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
 
 public class ApplicationMasterServiceImpl extends
     AbstractScheduledService implements ApplicationMasterService,
@@ -64,6 +72,7 @@ public class ApplicationMasterServiceImpl extends
   private final List<ContainerTracker> trackers = Lists.newArrayList();
 
   private AMRMClientAsync resourceManager;
+  private UserGroupInformation appSubmitterUgi;
   private boolean hasRunningContainers = false;
   private Throwable throwable;
 
@@ -83,7 +92,27 @@ public class ApplicationMasterServiceImpl extends
   }
   
   @Override
-  protected void startUp() {
+  protected void startUp() throws IOException {
+    Credentials credentials = UserGroupInformation.getCurrentUser().getCredentials();
+    DataOutputBuffer dob = new DataOutputBuffer();
+    credentials.writeTokenStorageToStream(dob);
+    // Now remove the AM->RM token so that containers cannot access it.
+    Iterator<Token<?>> iter = credentials.getAllTokens().iterator();
+    LOG.info("Executing with tokens:");
+    while (iter.hasNext()) {
+      Token<?> token = iter.next();
+      LOG.info(token);
+      if (token.getKind().equals(AMRMTokenIdentifier.KIND_NAME)) {
+        iter.remove();
+      }
+    }
+    ByteBuffer tokens = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
+
+    // Create appSubmitterUgi and add original tokens to it
+    String userName = System.getenv(ApplicationConstants.Environment.USER.name());
+    appSubmitterUgi = UserGroupInformation.createRemoteUser(userName);
+    appSubmitterUgi.addCredentials(credentials);
+
     this.resourceManager = AMRMClientAsync.createAMRMClientAsync(1000, this);
     this.resourceManager.init(conf);
     this.resourceManager.start();
@@ -101,7 +130,7 @@ public class ApplicationMasterServiceImpl extends
     }
 
     ContainerLaunchContextFactory factory = new ContainerLaunchContextFactory(
-        registration.getMaximumResourceCapability());
+        registration.getMaximumResourceCapability(), tokens);
     for (ContainerLaunchParameters clp : parameters.getContainerLaunchParameters()) {
       ContainerTracker tracker = new ContainerTracker(clp);
       tracker.init(factory);
