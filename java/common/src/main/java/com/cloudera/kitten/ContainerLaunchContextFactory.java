@@ -41,7 +41,7 @@ public class ContainerLaunchContextFactory {
     clc.setEnvironment(parameters.getEnvironment());
     clc.setLocalResources(parameters.getLocalResources());
     if (allTokens != null) {
-      clc.setTokens(allTokens);
+      clc.setTokens(allTokens.duplicate());
     }
     return clc;
   }
