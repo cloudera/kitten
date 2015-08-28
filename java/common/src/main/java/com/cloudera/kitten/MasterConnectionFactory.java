@@ -13,11 +13,12 @@
  * License.
  */
 package com.cloudera.kitten;
-
+import org.apache.hadoop.conf.Configuration;
 /**
  * An interface for handling the connection to one of the master YARN services, like the
  * ResourceManager.
  */
 public interface MasterConnectionFactory<T> {
+  public Configuration getConfig();
   T connect();
 }
