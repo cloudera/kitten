@@ -87,10 +87,10 @@ public class YarnClientServiceImpl extends AbstractScheduledService
   protected void startUp() throws IOException {
     ByteBuffer serializedTokens = null;
     if (UserGroupInformation.isSecurityEnabled()) {
-      Configuration conf = yarnClient.getConfig();
+      Configuration conf = this.yarnClientFactory.getConfig();
       FileSystem fs = FileSystem.get(conf);
       Credentials credentials = new Credentials();
-      String tokenRenewer = yarnClient.getConfig().get(YarnConfiguration.RM_PRINCIPAL);
+      String tokenRenewer = this.yarnClientFactory.getConfig().get(YarnConfiguration.RM_PRINCIPAL);
       if (tokenRenewer == null || tokenRenewer.length() == 0) {
         throw new IOException("Can't get Master Kerberos principal for the RM to use as renewer");
       }
@@ -120,6 +120,7 @@ public class YarnClientServiceImpl extends AbstractScheduledService
     // Setup the container for the application master.
     ContainerLaunchParameters appMasterParams = parameters.getApplicationMasterParameters(applicationId);
     ContainerLaunchContext clc = clcFactory.create(appMasterParams);
+    LOG.debug("Master context: " + clc);
     appContext.setResource(clcFactory.createResource(appMasterParams));
     appContext.setQueue(parameters.getQueue());
     appContext.setPriority(clcFactory.createPriority(appMasterParams.getPriority()));

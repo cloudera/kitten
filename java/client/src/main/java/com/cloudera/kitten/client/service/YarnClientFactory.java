@@ -30,13 +30,20 @@ public class YarnClientFactory implements MasterConnectionFactory<YarnClient> {
   private final Configuration conf;
 
   public YarnClientFactory(Configuration conf) {
-    this.conf = Preconditions.checkNotNull(conf);
+    conf = Preconditions.checkNotNull(conf);
+    this.conf = new YarnConfiguration(conf);
+  }
+    
+  @Override
+  public Configuration getConfig()
+  {
+        return this.conf;
   }
   
   @Override
   public YarnClient connect() {
     YarnClient client = YarnClient.createYarnClient();
-    client.init(new YarnConfiguration(conf));
+    client.init(conf);
     client.start();
     return client;
   }
