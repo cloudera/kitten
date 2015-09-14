@@ -132,11 +132,17 @@ public class ApplicationMasterServiceImpl extends
     ContainerLaunchContextFactory factory = new ContainerLaunchContextFactory(
         registration.getMaximumResourceCapability(), tokens);
     for (ContainerLaunchParameters clp : parameters.getContainerLaunchParameters()) {
-      ContainerTracker tracker = new ContainerTracker(clp);
+      ContainerTracker tracker = getTracker(clp);
       tracker.init(factory);
-      trackers.add(tracker);
+      synchronized(trackers) { //trackers can be added while containers are being allocated (c.f. onContainersAllocated())
+        trackers.add(tracker);
+      }
     }
     this.hasRunningContainers = true;
+  }
+
+  protected ContainerTracker getTracker(ContainerLaunchParameters clp) {
+    return new ContainerTracker(clp);
   }
   
   @Override
@@ -210,14 +216,16 @@ public class ApplicationMasterServiceImpl extends
   public void onContainersAllocated(List<Container> allocatedContainers) {
     LOG.info("Allocating " + allocatedContainers.size() + " container(s)");
     Set<Container> assigned = Sets.newHashSet();
-    for (ContainerTracker tracker : trackers) {
-      if (tracker.needsContainers()) {
-        for (Container allocated : allocatedContainers) {
-          if (!assigned.contains(allocated) && tracker.matches(allocated)) {
-            tracker.launchContainer(allocated);
-            assigned.add(allocated);
+    synchronized (trackers) {
+      for (ContainerTracker tracker : trackers) {
+        //we need to check tracker.needsContainers() for each container, as the
+        //previously allocated container may have addressed the containers' need
+          for (Container allocated : allocatedContainers) {
+            if (tracker.needsContainers() && ! assigned.contains(allocated) && tracker.matches(allocated)) {
+              tracker.launchContainer(allocated);
+              assigned.add(allocated);
+            }
           }
-        }
       }
     }
     if (assigned.size() < allocatedContainers.size()) {
@@ -256,7 +264,7 @@ public class ApplicationMasterServiceImpl extends
     stop();
   }
 
-  private class ContainerTracker implements NMClientAsync.CallbackHandler {
+  protected class ContainerTracker implements NMClientAsync.CallbackHandler {
     private final ContainerLaunchParameters parameters;
     private final ConcurrentMap<ContainerId, Container> containers = Maps.newConcurrentMap();
 
