@@ -275,13 +275,15 @@ public class ApplicationMasterServiceImpl extends
     private NMClientAsync nodeManager;
     private Resource resource;
     private Priority priority;
+    private String nodeLabelsExpression;
     private ContainerLaunchContext ctxt;
 
     public ContainerTracker(ContainerLaunchParameters parameters) {
       this.parameters = parameters;
     }
 
-    public void init(ContainerLaunchContextFactory factory) {
+    @SuppressWarnings("unchecked")
+	public void init(ContainerLaunchContextFactory factory) {
       this.nodeManager = NMClientAsync.createNMClientAsync(this);
       nodeManager.init(conf);
       nodeManager.start();
@@ -289,12 +291,19 @@ public class ApplicationMasterServiceImpl extends
       this.ctxt = factory.create(parameters);
       this.resource = factory.createResource(parameters);
       this.priority = factory.createPriority(parameters.getPriority());
+      this.nodeLabelsExpression = factory.getNodeLabelExpression(parameters);
+      String[] nodes = null;
+      String[] racks = null;
       AMRMClient.ContainerRequest containerRequest = new AMRMClient.ContainerRequest(
           resource,
-          null, // nodes
-          null, // racks
-          priority);
+          nodes, // nodes
+          racks, // racks
+          priority,
+          true, //default for "relaxLocality"
+          nodeLabelsExpression //usually null
+          );
       int numInstances = parameters.getNumInstances();
+      LOG.debug(this.toString() + " needs " + numInstances + " instances of this container type");
       for (int j = 0; j < numInstances; j++) {
         resourceManager.addContainerRequest(containerRequest);
       }

@@ -37,6 +37,7 @@ public class LuaFields {
   public static final String CORES = "cores";
   public static final String MEMORY = "memory";
   public static final String PRIORITY = "priority";
+  public static final String NODE_LABELS = "nodeLabels";
 
   // For constructing commands from a LuaTable.
   public static final String COMMAND_BASE = "base";

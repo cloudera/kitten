@@ -54,4 +54,10 @@ public interface ContainerLaunchParameters {
    * The commands to execute that start the application within the container.
    */
   List<String> getCommands();
+
+  /**
+   * The nodeLabelsExpression that defines the types of nodes that can be allocated to the container.
+   * Defaults to null.
+   */
+  String getNodeLabelsExpression();
 }

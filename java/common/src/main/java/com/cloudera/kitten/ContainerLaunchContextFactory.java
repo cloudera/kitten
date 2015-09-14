@@ -14,13 +14,12 @@
  */
 package com.cloudera.kitten;
 
+import java.nio.ByteBuffer;
+
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.hadoop.yarn.api.records.ResourceRequest;
 import org.apache.hadoop.yarn.util.Records;
-
-import java.nio.ByteBuffer;
 
 /**
  * Functions for constructing YARN objects from the parameter values.
@@ -44,6 +43,10 @@ public class ContainerLaunchContextFactory {
       clc.setTokens(allTokens.duplicate());
     }
     return clc;
+  }
+
+  public String getNodeLabelExpression(ContainerLaunchParameters parameters) {
+    return parameters.getNodeLabelsExpression();
   }
   
   public Resource createResource(ContainerLaunchParameters parameters) {
