@@ -32,4 +32,8 @@ public interface ApplicationMasterService extends Service {
    * monitoring.
    */
   boolean hasRunningContainers();
+  
+  int getTotalRequested();
+  int getTotalCompleted();
+  int getTotalFailures();
 }

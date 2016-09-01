@@ -20,7 +20,9 @@ import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
+
 import org.apache.commons.logging.LogFactory;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 
@@ -97,6 +99,11 @@ public class LuaYarnClientParameters implements YarnClientParameters {
   public String getApplicationName() {
     return env.getString(LuaFields.APP_NAME);
   }
+  
+  @Override
+  public String getApplicationType() {
+    return env.isNil(LuaFields.APP_TYPE) ? "kitten" : env.getString(LuaFields.APP_TYPE);
+  }
 
   @Override
   public String getQueue() {
@@ -165,5 +172,7 @@ public class LuaYarnClientParameters implements YarnClientParameters {
   public long getClientTimeoutMillis() {
     return env.isNil(LuaFields.TIMEOUT) ? -1 : env.getLong(LuaFields.TIMEOUT);
   }
+
+
 
 }

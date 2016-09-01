@@ -41,7 +41,13 @@
       <artifactId>luaj-jse</artifactId>
       <version>${luaj.version}</version>
     </dependency>
-  </dependencies>
+
+  <dependency>
+    <groupId>junit</groupId>
+    <artifactId>junit</artifactId>
+    <version>4.11</version>
+  </dependency>
+ </dependencies>
 
   <build>
     <plugins>

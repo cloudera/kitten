@@ -31,7 +31,9 @@ import java.util.Set;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
+
 import org.apache.commons.logging.LogFactory;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -125,6 +127,7 @@ public class LocalDataHelper {
       Path src = new Path(localDataName);
       Path dst = getPath(fs, src.getName());
       InputStream data = getFileOrResource(localDataName);
+      assert data != null : "Could not access file/resource " + localDataName;
       FSDataOutputStream os = fs.create(dst, true);
       ByteStreams.copy(data, os);
       os.close();
