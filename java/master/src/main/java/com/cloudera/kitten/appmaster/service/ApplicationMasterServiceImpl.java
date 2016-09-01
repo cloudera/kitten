@@ -246,6 +246,7 @@ public class ApplicationMasterServiceImpl extends
     LOG.info("Allocating " + allocatedContainers.size() + " container(s)");
     Set<Container> assigned = Sets.newHashSet();
     synchronized (trackers) {
+<<<<<<< HEAD
     	 ALLOCATED: for (Container allocated : allocatedContainers) {
     		 LOG.info("Looking for home for "+ allocated.getId().toString());
     		 for (ContainerTracker tracker : trackers) {
@@ -273,6 +274,18 @@ public class ApplicationMasterServiceImpl extends
 //	          }
 //	        }
 //	    }
+=======
+      for (ContainerTracker tracker : trackers) {
+        //we need to check tracker.needsContainers() for each container, as the
+        //previously allocated container may have addressed the containers' need
+          for (Container allocated : allocatedContainers) {
+            if (tracker.needsContainers() && ! assigned.contains(allocated) && tracker.matches(allocated)) {
+              tracker.launchContainer(allocated);
+              assigned.add(allocated);
+            }
+          }
+      }
+>>>>>>> 30fb2067419bebdd62083b93e3fe9b9017a707fe
     }
     if (assigned.size() < allocatedContainers.size()) {
       LOG.warn(String.format("Not all containers were allocated (%d out of %d)", assigned.size(),
@@ -326,7 +339,11 @@ public class ApplicationMasterServiceImpl extends
   }
 
   protected class ContainerTracker implements NMClientAsync.CallbackHandler {
+<<<<<<< HEAD
     protected final ContainerLaunchParameters parameters;
+=======
+    private final ContainerLaunchParameters parameters;
+>>>>>>> 30fb2067419bebdd62083b93e3fe9b9017a707fe
     private final ConcurrentMap<ContainerId, Container> containers = Maps.newConcurrentMap();
 
     private int total;
@@ -338,14 +355,22 @@ public class ApplicationMasterServiceImpl extends
     private Resource resource;
     private Priority priority;
     private String nodeLabelsExpression;
+<<<<<<< HEAD
     protected ContainerLaunchContext ctxt;
     AMRMClient.ContainerRequest containerRequest;
     String[] nodes;
+=======
+    private ContainerLaunchContext ctxt;
+>>>>>>> 30fb2067419bebdd62083b93e3fe9b9017a707fe
 
     public ContainerTracker(ContainerLaunchParameters parameters) {
       this.parameters = parameters;
     }
 
+<<<<<<< HEAD
+=======
+    @SuppressWarnings("unchecked")
+>>>>>>> 30fb2067419bebdd62083b93e3fe9b9017a707fe
 	public void init(ContainerLaunchContextFactory factory) {
       this.nodeManager = NMClientAsync.createNMClientAsync(this);
       nodeManager.init(conf);
@@ -356,6 +381,7 @@ public class ApplicationMasterServiceImpl extends
       this.resource = factory.createResource(parameters);
       this.priority = factory.createPriority(parameters.getPriority());
       this.nodeLabelsExpression = factory.getNodeLabelExpression(parameters);
+<<<<<<< HEAD
       nodes = null;
       if (parameters.getNode() != null)
       {
@@ -364,15 +390,28 @@ public class ApplicationMasterServiceImpl extends
       
       String[] racks = null;
       containerRequest = new AMRMClient.ContainerRequest(
+=======
+      String[] nodes = null;
+      String[] racks = null;
+      AMRMClient.ContainerRequest containerRequest = new AMRMClient.ContainerRequest(
+>>>>>>> 30fb2067419bebdd62083b93e3fe9b9017a707fe
           resource,
           nodes, // nodes
           racks, // racks
           priority,
+<<<<<<< HEAD
           nodes == null, //we can relax locality only when no node names are specified
           nodeLabelsExpression //usually null
           );
       int numInstances = total = parameters.getNumInstances();
       LOG.info(this.toString() + " needs " + numInstances + " instances of this container type");
+=======
+          true, //default for "relaxLocality"
+          nodeLabelsExpression //usually null
+          );
+      int numInstances = parameters.getNumInstances();
+      LOG.debug(this.toString() + " needs " + numInstances + " instances of this container type");
+>>>>>>> 30fb2067419bebdd62083b93e3fe9b9017a707fe
       for (int j = 0; j < numInstances; j++) {
         resourceManager.addContainerRequest(containerRequest);
       }

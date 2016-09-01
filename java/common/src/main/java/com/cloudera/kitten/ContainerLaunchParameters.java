@@ -55,7 +55,7 @@ public interface ContainerLaunchParameters {
    */
   List<String> getCommands();
   
-  /** 
+  /**
    * The nodeLabelsExpression that defines the types of nodes that can be allocated to the container.
    * Defaults to null.
    */

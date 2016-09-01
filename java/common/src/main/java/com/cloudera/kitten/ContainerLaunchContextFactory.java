@@ -44,6 +44,10 @@ public class ContainerLaunchContextFactory {
     }
     return clc;
   }
+
+  public String getNodeLabelExpression(ContainerLaunchParameters parameters) {
+    return parameters.getNodeLabelsExpression();
+  }
   
   public String getNodeLabelExpression(ContainerLaunchParameters parameters) {
 	  return parameters.getNodeLabelsExpression();

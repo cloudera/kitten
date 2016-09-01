@@ -80,6 +80,11 @@ public class LuaContainerLaunchParameters implements ContainerLaunchParameters {
   }
 
   @Override
+  public String getNodeLabelsExpression() {
+  	return lv.isNil(LuaFields.NODE_LABELS) ? null : lv.getString(LuaFields.NODE_LABELS);
+  }
+
+  @Override
   public Resource getContainerResource(Resource clusterMax) {
     Resource rsrc = Records.newRecord(Resource.class);
     rsrc.setMemory(Math.min(clusterMax.getMemory(), getMemory()));
@@ -268,7 +273,6 @@ public class LuaContainerLaunchParameters implements ContainerLaunchParameters {
     }
     return sb.toString();
   }
-
 
 
 }

@@ -41,7 +41,6 @@ public class LuaFields {
   public static final String NODE_LABELS = "node_labels";
   public static final String NODE = "node";
   
-
   // For constructing commands from a LuaTable.
   public static final String COMMAND_BASE = "base";
   public static final String ARGS = "args";
