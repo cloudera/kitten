@@ -73,11 +73,6 @@ public class LuaContainerLaunchParameters implements ContainerLaunchParameters {
   public int getMemory() {
     return lv.getInteger(LuaFields.MEMORY);
   }
-  
-  @Override
-  public String getNodeLabelsExpression() {
-  	return lv.isNil(LuaFields.NODE_LABELS) ? null : lv.getString(LuaFields.NODE_LABELS);
-  }
 
   @Override
   public String getNodeLabelsExpression() {
