@@ -224,7 +224,7 @@ public class ApplicationMasterServiceImpl extends
       int exitStatus = status.getExitStatus();
       if (0 != exitStatus) {
         // container failed
-        LOG.warn("Container " + status.getContainerId() + " exited with code "+ exitStatus);
+        LOG.warn("Container " + status.getContainerId() + " exited with code "+ exitStatus + " diagnostic " + status.getDiagnostics());
     	if (ContainerExitStatus.ABORTED != exitStatus) {
           totalCompleted.incrementAndGet();
           totalFailures.incrementAndGet();
@@ -294,9 +294,11 @@ public class ApplicationMasterServiceImpl extends
   @Override
   public float getProgress() {
     int num = 0, den = 0;
-    for (ContainerTracker tracker : trackers) {
-      num += tracker.completed.get();
-      den += tracker.parameters.getNumInstances();
+    synchronized (trackers) {
+        for (ContainerTracker tracker : trackers) {
+              num += tracker.completed.get();
+              den += tracker.parameters.getNumInstances();
+        }
     }
     if (den == 0) {
       return 0.0f;
