@@ -142,6 +142,8 @@ public class ApplicationMasterServiceImpl extends
 
     ContainerLaunchContextFactory factory = new ContainerLaunchContextFactory(
         registration.getMaximumResourceCapability(), tokens);
+    LOG.info("Maximum resources in this cluster is " + registration.getMaximumResourceCapability().toString() );
+    
     int totalRequested = 0;
     for (ContainerLaunchParameters clp : parameters.getContainerLaunchParameters()) {
       ContainerTracker tracker = getTracker(clp);
@@ -376,6 +378,8 @@ public class ApplicationMasterServiceImpl extends
           );
       int numInstances = total = parameters.getNumInstances();
       LOG.info(this.toString() + " needs " + numInstances + " instances of this container type");
+      LOG.info(this.toString() + " container request is resource=" 
+    		  + resource.toString() + " nodes="+ nodes + " racks="+racks + " priority="+priority);
       for (int j = 0; j < numInstances; j++) {
         resourceManager.addContainerRequest(containerRequest);
       }
@@ -433,7 +437,7 @@ public class ApplicationMasterServiceImpl extends
     }
 
     public boolean matches(Container c) {
-    	LOG.info("Trying to match container " + c.toString() + " with "+ c.getResource().toString());
+    	LOG.info("Trying to match container " + c.toString() + " @ " +c.getNodeId()  + " with "+ c.getResource().toString());
     	LOG.info("... to " + this.resource.toString());
     	//if (! c.getResource().equals(this.resource))
     	//	return false;
