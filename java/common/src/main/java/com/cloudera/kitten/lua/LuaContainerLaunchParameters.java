@@ -84,6 +84,10 @@ public class LuaContainerLaunchParameters implements ContainerLaunchParameters {
     Resource rsrc = Records.newRecord(Resource.class);
     rsrc.setMemory(Math.min(clusterMax.getMemory(), getMemory()));
     rsrc.setVirtualCores(Math.min(clusterMax.getVirtualCores(), getCores()));
+    if (rsrc.getMemory() < getMemory())
+    	LOG.warn("Memory reduced from "+getMemory()+" to cluster maximum " + rsrc.getMemory());
+    if (rsrc.getMemory() < getMemory())
+    	LOG.warn("VCores reduced from "+getCores()+" to cluster maximum " + rsrc.getVirtualCores());
     return rsrc;
   }
 
