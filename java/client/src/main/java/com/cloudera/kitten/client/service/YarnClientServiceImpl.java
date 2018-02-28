@@ -149,7 +149,7 @@ public class YarnClientServiceImpl extends AbstractScheduledService
     stopwatch.start();
   }
   
-  private void submitApplication(ApplicationSubmissionContext appContext) {
+  protected void submitApplication(ApplicationSubmissionContext appContext) {
     LOG.info("Submitting application to the applications manager");
     try {
       yarnClient.submitApplication(appContext);
