@@ -379,7 +379,7 @@ public class ApplicationMasterServiceImpl extends
       int numInstances = total = parameters.getNumInstances();
       LOG.info(this.toString() + " needs " + numInstances + " instances of this container type");
       LOG.info(this.toString() + " container request is resource=" 
-    		  + resource.toString() + " nodes="+ nodes + " racks="+racks + " priority="+priority);
+    		  + resource.toString() + " nodes="+ Arrays.toString(nodes) + " racks="+Arrays.toString(racks) + " priority="+priority);
       for (int j = 0; j < numInstances; j++) {
         resourceManager.addContainerRequest(containerRequest);
       }
