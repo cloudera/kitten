@@ -20,8 +20,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.util.StringUtils;
 import org.luaj.vm2.LoadState;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
@@ -58,11 +60,19 @@ public class LuaWrapper implements Iterable<LuaPair> {
         env.set(e.getKey(), CoerceJavaToLua.coerce(e.getValue()));
       }
       InputStream luaCode = LocalDataHelper.getFileOrResource(script);
+      assert luaCode != null : "Lua script " + script + " not found";
       LoadState.load(luaCode, script, env).call();
     } catch (IOException e) {
       LOG.error("Lua initialization error", e);
       throw new RuntimeException(e);
-    }
+    } catch (NullPointerException e) {
+        LOG.error("Lua compiler error", e);
+        try{
+	        List<String> lines = IOUtils.readLines( LocalDataHelper.getFileOrResource(script));
+	        LOG.error(StringUtils.join("\n", lines));
+        } catch (IOException ioe) {}
+        throw new RuntimeException(e);
+      } 
   }
   
   public LuaWrapper(LuaTable table) {

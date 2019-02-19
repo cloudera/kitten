@@ -86,6 +86,6 @@ public class TestKittenDistributedShell {
     client.setConf(conf);
     System.out.println("Running...");
     assertEquals(0, client.run(new String[]{config, "distshell"}));
-    assertEquals(12, Files.readLines(tmpFile, Charsets.UTF_8).size()); 
+    assertEquals(14, Files.readLines(tmpFile, Charsets.UTF_8).size()); 
   }
 }

@@ -24,6 +24,7 @@ public class LuaFields {
   public static final String CONTAINERS = "containers";
   public static final String CONTAINER = "container";
   public static final String APP_NAME = "name";
+  public static final String APP_TYPE = "app_type";
   public static final String TIMEOUT = "timeout";
   public static final String USER = "user";
   public static final String QUEUE = "queue";
@@ -37,7 +38,9 @@ public class LuaFields {
   public static final String CORES = "cores";
   public static final String MEMORY = "memory";
   public static final String PRIORITY = "priority";
-
+  public static final String NODE_LABELS = "node_labels";
+  public static final String NODE = "node";
+  
   // For constructing commands from a LuaTable.
   public static final String COMMAND_BASE = "base";
   public static final String ARGS = "args";

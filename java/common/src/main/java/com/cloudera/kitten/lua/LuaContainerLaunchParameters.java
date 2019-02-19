@@ -27,7 +27,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
@@ -66,6 +65,7 @@ public class LuaContainerLaunchParameters implements ContainerLaunchParameters {
     this.extras = extras;
   }
 
+  
   public int getCores() {
     return lv.getInteger(LuaFields.CORES);
   }
@@ -75,10 +75,19 @@ public class LuaContainerLaunchParameters implements ContainerLaunchParameters {
   }
 
   @Override
+  public String getNodeLabelsExpression() {
+  	return lv.isNil(LuaFields.NODE_LABELS) ? null : lv.getString(LuaFields.NODE_LABELS);
+  }
+
+  @Override
   public Resource getContainerResource(Resource clusterMax) {
     Resource rsrc = Records.newRecord(Resource.class);
     rsrc.setMemory(Math.min(clusterMax.getMemory(), getMemory()));
     rsrc.setVirtualCores(Math.min(clusterMax.getVirtualCores(), getCores()));
+    if (rsrc.getMemory() < getMemory())
+    	LOG.warn("Memory reduced from "+getMemory()+" to cluster maximum " + rsrc.getMemory());
+    if (rsrc.getMemory() < getMemory())
+    	LOG.warn("VCores reduced from "+getCores()+" to cluster maximum " + rsrc.getVirtualCores());
     return rsrc;
   }
 
@@ -90,6 +99,12 @@ public class LuaContainerLaunchParameters implements ContainerLaunchParameters {
   @Override
   public int getNumInstances() {
     return lv.isNil(LuaFields.INSTANCES) ? 1 : lv.getInteger(LuaFields.INSTANCES);
+  }
+  
+
+  @Override
+  public String getNode() {
+    return lv.isNil(LuaFields.NODE) ? null : lv.getString(LuaFields.NODE);
   }
   
   @Override
@@ -123,12 +138,17 @@ public class LuaContainerLaunchParameters implements ContainerLaunchParameters {
   }
 
   private LocalResource constructExtraResource(String key) {
-    LocalResource rsrc = Records.newRecord(LocalResource.class);
+	if (key.equals("job.xml") && ! localFileUris.containsKey(key))
+	  return null;
+	LocalResource rsrc = Records.newRecord(LocalResource.class);
     rsrc.setType(LocalResourceType.FILE);
     rsrc.setVisibility(LocalResourceVisibility.APPLICATION);
     try {
       Path path = new Path(localFileUris.get(key));
       configureLocalResourceForPath(rsrc, path);
+    } catch (NullPointerException npe) {
+      LOG.warn("No local URI found for "+ key, npe);
+      return null;
     } catch (IOException e) {
       LOG.error("Error constructing extra local resource: " + key, e);
       return null;
@@ -191,9 +211,10 @@ public class LuaContainerLaunchParameters implements ContainerLaunchParameters {
   private void configureLocalResourceForPath(LocalResource rsrc, Path path) throws IOException {
     FileSystem fs = FileSystem.get(conf);
     FileStatus stat = fs.getFileStatus(path);
+    Path p = path.makeQualified(fs.getUri(), fs.getWorkingDirectory());
     rsrc.setSize(stat.getLen());
     rsrc.setTimestamp(stat.getModificationTime());
-    rsrc.setResource(ConverterUtils.getYarnUrlFromPath(path));
+    rsrc.setResource(ConverterUtils.getYarnUrlFromPath(p));
   }
   
   @Override
@@ -251,4 +272,6 @@ public class LuaContainerLaunchParameters implements ContainerLaunchParameters {
     }
     return sb.toString();
   }
+
+
 }

@@ -64,7 +64,7 @@ public class YarnClientServiceImpl extends AbstractScheduledService
   private final YarnClientParameters parameters;
   private final MasterConnectionFactory<YarnClient> yarnClientFactory;
   private final Stopwatch stopwatch;
-  
+  private Credentials credentials;
   private YarnClient yarnClient;
   private ApplicationId applicationId;
   private ApplicationReport finalReport;
@@ -72,15 +72,23 @@ public class YarnClientServiceImpl extends AbstractScheduledService
   
   public YarnClientServiceImpl(YarnClientParameters params) {
     this(params, new YarnClientFactory(params.getConfiguration()),
-        new Stopwatch());
+        new Stopwatch(), new Credentials());
   }
+  
+  public YarnClientServiceImpl(YarnClientParameters params, Credentials credentials) {
+	    this(params, new YarnClientFactory(params.getConfiguration()),
+	        new Stopwatch(), credentials);
+	  }
   
   public YarnClientServiceImpl(YarnClientParameters parameters,
       MasterConnectionFactory<YarnClient> yarnClientFactory,
-      Stopwatch stopwatch) {
+      Stopwatch stopwatch, Credentials credentials) {
     this.parameters = Preconditions.checkNotNull(parameters);
     this.yarnClientFactory = yarnClientFactory;
     this.stopwatch = stopwatch;
+    this.credentials = credentials;
+    if (this.credentials == null)
+    	this.credentials = new Credentials();
   }
   
   @Override
@@ -89,7 +97,6 @@ public class YarnClientServiceImpl extends AbstractScheduledService
     if (UserGroupInformation.isSecurityEnabled()) {
       Configuration conf = this.yarnClientFactory.getConfig();
       FileSystem fs = FileSystem.get(conf);
-      Credentials credentials = new Credentials();
       String tokenRenewer = this.yarnClientFactory.getConfig().get(YarnConfiguration.RM_PRINCIPAL);
       if (tokenRenewer == null || tokenRenewer.length() == 0) {
         throw new IOException("Can't get Master Kerberos principal for the RM to use as renewer");
@@ -116,6 +123,8 @@ public class YarnClientServiceImpl extends AbstractScheduledService
     ApplicationSubmissionContext appContext = clientApp.getApplicationSubmissionContext();
     this.applicationId = appContext.getApplicationId();
     appContext.setApplicationName(parameters.getApplicationName());
+    if (parameters.getApplicationType() != null)
+    	appContext.setApplicationType(parameters.getApplicationType());
 
     // Setup the container for the application master.
     ContainerLaunchParameters appMasterParams = parameters.getApplicationMasterParameters(applicationId);
@@ -140,7 +149,7 @@ public class YarnClientServiceImpl extends AbstractScheduledService
     stopwatch.start();
   }
   
-  private void submitApplication(ApplicationSubmissionContext appContext) {
+  protected void submitApplication(ApplicationSubmissionContext appContext) {
     LOG.info("Submitting application to the applications manager");
     try {
       yarnClient.submitApplication(appContext);

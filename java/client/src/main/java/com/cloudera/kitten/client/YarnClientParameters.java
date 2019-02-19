@@ -31,6 +31,11 @@ public interface YarnClientParameters {
   String getApplicationName();
   
   /**
+   * The type of this YARN application. Defaults to "Kitten"
+   */
+  String getApplicationType();
+  
+  /**
    * The queue the application master is assigned to run in.
    */
   String getQueue();
